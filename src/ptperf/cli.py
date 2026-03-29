@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal
+from typing import Annotated, Literal
 
-from typer import Typer
+from typer import Option, Typer
+
+from ptperf.types import DatasetName
 
 app = Typer(no_args_is_help=True)
 
@@ -31,11 +33,16 @@ def timed(func: Callable) -> Callable:
 
 @app.command()
 @timed
-def main(log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"):
+def main(
+    model_path: Annotated[str, Option()],
+    dataset: Annotated[DatasetName.__value__, Option()],
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
+):
     from ptperf.logging import logger
+    from ptperf.scripts import fine_tune
 
     logger.setLevel(log_level)
-    logger.info("i'm not impressed by your performance")
+    fine_tune(model_path, dataset)
 
 
 if __name__ == "__main__":
