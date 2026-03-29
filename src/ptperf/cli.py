@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Literal
 
@@ -27,18 +29,12 @@ def timed(func: Callable) -> Callable:
     return wrapper
 
 
-@app.callback()
-def callback(log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"):
+@app.command()
+@timed
+def main(log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"):
     from ptperf.logging import logger
 
     logger.setLevel(log_level)
-
-
-@app.command()
-@timed
-def main():
-    from ptperf.logging import logger
-
     logger.info("i'm not impressed by your performance")
 
 
