@@ -1,3 +1,3 @@
 from typing import Literal
 
-type DatasetName = Literal["wikitext", "samsum"]
+DatasetName = Literal["wikitext", "samsum"]

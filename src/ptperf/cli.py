@@ -35,7 +35,7 @@ def timed(func: Callable) -> Callable:
 @timed
 def main(
     model_path: Annotated[str, Option()],
-    dataset: Annotated[DatasetName.__value__, Option()],
+    dataset: Annotated[DatasetName, Option()],
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
 ):
     from ptperf.logging import logger
