@@ -1,3 +1,3 @@
 from typing import Literal
 
-Task = Literal["causal-lm", "seq2seq"]
+type Task = Literal["causal-lm", "seq2seq"]
