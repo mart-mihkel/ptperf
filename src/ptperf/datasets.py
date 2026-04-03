@@ -1,0 +1,84 @@
+from typing import TypedDict
+
+from datasets.dataset_dict import DatasetDict
+from datasets.load import load_dataset
+from transformers import BatchEncoding, PreTrainedConfig, PreTrainedTokenizerFast
+
+from ptperf.logging import logger
+from ptperf.types import Task
+
+
+class SamSumExample(TypedDict):
+    id: int
+    dialogue: str
+    summary: str
+
+
+class WikiTextExample(TypedDict):
+    text: str
+
+
+def load_data(
+    task: Task,
+    tokenizer: PreTrainedTokenizerFast,
+    config: PreTrainedConfig,
+) -> DatasetDict:
+    if task == "causal-lm":
+        return load_wikitext(tokenizer, config)
+
+    if task == "seq2seq":
+        return load_samsum(tokenizer, config)
+
+    raise NotImplementedError(f"Dataset for task: {task}")
+
+
+def load_samsum(
+    tokenizer: PreTrainedTokenizerFast,
+    config: PreTrainedConfig,
+) -> DatasetDict:
+    raw = load_dataset("knkarthick/samsum")
+
+    cols = ["id", "dialogue", "summary"]
+    fn_kwargs = {"tokenizer": tokenizer, "config": config}
+    data = raw.map(_tokenize_samsum, remove_columns=cols, fn_kwargs=fn_kwargs)
+
+    return data
+
+
+def _tokenize_samsum(
+    example: SamSumExample,
+    tokenizer: PreTrainedTokenizerFast,
+) -> BatchEncoding:
+    prompt = tokenizer(example["dialogue"], truncation=True)
+    answer = tokenizer(example["summary"], truncation=True)
+    prompt["labels"] = answer["input_ids"]
+    return prompt
+
+
+def load_wikitext(
+    tokenizer: PreTrainedTokenizerFast,
+    config: PreTrainedConfig,
+) -> DatasetDict:
+    raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1")
+
+    logger.debug("filter empty sequences")
+    raw = raw.filter(lambda example: len(example["text"].strip()) > 0)
+
+    cols = ["text"]
+    fn_kwargs = {"tokenizer": tokenizer, "config": config}
+    data = raw.map(_tokenize_wikitext, remove_columns=cols, fn_kwargs=fn_kwargs)
+
+    return data
+
+
+def _tokenize_wikitext(
+    example: WikiTextExample,
+    tokenizer: PreTrainedTokenizerFast,
+    config: PreTrainedConfig,
+) -> BatchEncoding:
+    return tokenizer(
+        example["text"],
+        truncation=True,
+        padding="max_length",
+        max_length=config.max_position_embeddings,
+    )

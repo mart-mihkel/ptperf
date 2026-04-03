@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from typer import Option, Typer
 
-from ptperf.types import DatasetName
+from ptperf.types import Task
 
 app = Typer(no_args_is_help=True)
 
@@ -35,14 +35,14 @@ def timed(func: Callable) -> Callable:
 @timed
 def main(
     model_path: Annotated[str, Option()],
-    dataset: Annotated[DatasetName, Option()],
+    task: Annotated[Task, Option()],
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
 ):
     from ptperf.logging import logger
     from ptperf.scripts import fine_tune
 
     logger.setLevel(log_level)
-    fine_tune(model_path, dataset)
+    fine_tune(model_path, task)
 
 
 if __name__ == "__main__":

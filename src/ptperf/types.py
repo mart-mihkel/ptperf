@@ -1,3 +1,3 @@
 from typing import Literal
 
-DatasetName = Literal["wikitext", "samsum"]
+Task = Literal["causal-lm", "seq2seq"]
