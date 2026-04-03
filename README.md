@@ -7,7 +7,7 @@ Use [uv](https://docs.astral.sh/uv/) for package management.
 Setup a virtualenv with your corresponding accelerator:
 
 ```bash
-uv sync --extra [cuda|rocm]
+uv sync --extra [cpu|cu130|rocm72]
 ```
 
 ## Usage

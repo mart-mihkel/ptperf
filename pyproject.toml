@@ -3,7 +3,7 @@ name = "ptperf"
 version = "0.1.0"
 description = "Prompt Based Fine-Tuning Hardware Performance"
 readme = "README.md"
-requires-python = "~=3.11.15"
+requires-python = "~=3.14.0"
 dependencies = [
     "bitsandbytes~=0.45.5",
     "transformers~=5.3.0",
@@ -16,13 +16,17 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest~=9.0.2",
-    "ruff~=0.15.8",
-    "ty~=0.0.26",
+    "ruff~=0.15.9",
+    "ty~=0.0.28",
 ]
 
 [project.optional-dependencies]
-cuda = ["torch~=2.11.0"]
-rocm = ["torch"]
+cpu = ["torch~=2.11.0"]
+cu130 = ["torch~=2.11.0"]
+rocm72 = [
+    "torch@https://download.pytorch.org/whl/rocm7.2/torch-2.11.0%2Brocm7.2-cp314-cp314-manylinux_2_28_x86_64.whl",
+    "triton-rocm@https://download-r2.pytorch.org/whl/triton_rocm-3.6.0-cp314-cp314-linux_x86_64.whl"
+]
 
 [project.scripts]
 cli = "ptperf.cli:app"
@@ -31,26 +35,39 @@ cli = "ptperf.cli:app"
 requires = ["hatchling~=1.29"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.ruff.lint]
 select = ["A", "F", "E", "W", "I", "C4", "FA", "UP", "RUF", "SIM", "ARG"]
 
 [tool.uv]
 conflicts = [
-    [{ extra = "cuda" }, { extra = "rocm" }],
+    [
+        { extra = "cpu" },
+        { extra = "cu130" },
+        { extra = "rocm72" },
+    ],
 ]
 
 [tool.uv.sources]
 torch = [
-    { index = "torch-cuda", extra = "cuda" },
-    { index = "torch-rocm", extra = "rocm" },
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu130", extra = "cu130" },
+    { index = "pytorch-rocm72", extra = "rocm72" },
 ]
 
 [[tool.uv.index]]
-name = "torch-cuda"
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
 
 [[tool.uv.index]]
-name = "torch-rocm"
+name = "pytorch-rocm72"
 url = "https://download.pytorch.org/whl/rocm7.2"
 explicit = true
