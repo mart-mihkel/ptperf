@@ -20,15 +20,17 @@ from transformers import (
 
 from ptperf.datasets import load_data
 from ptperf.logging import logger
-from ptperf.types import Task
+from ptperf.types import Method, Task
 
 
 def fine_tune(
     model_path: str,
     task: Task,
+    method: Method,
     run_name: str,
     epochs: int,
     batch_size: int,
+    tracking: bool = False,
 ) -> None:
     logger.debug('load "%s" config', model_path)
     config = AutoConfig.from_pretrained(model_path)
@@ -39,10 +41,23 @@ def fine_tune(
 
     logger.info("prepare model")
     model = _load_model(model_path, task)
-    _log_params(model)
+
+    if method == "lora":
+        logger.info("prepare lora model")
+        peft_config = LoraConfig()
+        model = get_peft_model(model, peft_config)
+    elif method == "prefix-tune":
+        logger.info("prepare prefix tuning model")
+        task_type = _get_peft_task(task)
+        peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=1)
+        model = get_peft_model(model, peft_config)
+    elif method != "fine-tune":
+        raise NotImplementedError(f"Method: {method}")
+
+    _log_params(model, tracking)
 
     collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size)
+    args = _get_training_args(run_name, epochs, batch_size, tracking)
 
     trainer = Trainer(
         args=args,
@@ -54,94 +69,6 @@ def fine_tune(
 
     logger.info("start trainer")
     trainer.train()
-
-    logger.info('save checkpoint to "%s"', args.output_dir)
-    trainer.save_model()
-
-
-def lora(
-    model_path: str,
-    task: Task,
-    run_name: str,
-    epochs: int,
-    batch_size: int,
-) -> None:
-    logger.debug('load "%s" config', model_path)
-    config = AutoConfig.from_pretrained(model_path)
-    tokenizer = _load_tokenizer(model_path)
-
-    logger.info("prepare data")
-    data = load_data(tokenizer, config, task)
-
-    logger.info("prepare base model")
-    model = _load_model(model_path, task)
-
-    logger.info("prepare lora model")
-    peft_config = LoraConfig()
-    peft_model = get_peft_model(model, peft_config)
-    del model
-
-    _log_params(peft_model)
-
-    collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size)
-
-    trainer = Trainer(
-        args=args,
-        model=peft_model,
-        data_collator=collator,
-        train_dataset=data["train"],
-        eval_dataset=data["validation"],
-    )
-
-    logger.info("start trainer")
-    trainer.train()
-
-    logger.info('save checkpoint to "%s"', args.output_dir)
-    trainer.save_model()
-
-
-def prefix_tune(
-    model_path: str,
-    task: Task,
-    run_name: str,
-    epochs: int,
-    batch_size: int,
-) -> None:
-    logger.debug('load "%s" config', model_path)
-    config = AutoConfig.from_pretrained(model_path)
-    tokenizer = _load_tokenizer(model_path)
-
-    logger.info("prepare data")
-    data = load_data(tokenizer, config, task)
-
-    logger.info("prepare base model")
-    model = _load_model(model_path, task)
-
-    logger.info("prepare prefix tuning model")
-    task_type = _get_peft_task(task)
-    peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=1)
-    peft_model = get_peft_model(model, peft_config)
-    del model
-
-    _log_params(peft_model)
-
-    collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size)
-
-    trainer = Trainer(
-        args=args,
-        model=peft_model,
-        data_collator=collator,
-        train_dataset=data["train"],
-        eval_dataset=data["validation"],
-    )
-
-    logger.info("start trainer")
-    trainer.train()
-
-    logger.info('save checkpoint to "%s"', args.output_dir)
-    trainer.save_model()
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -195,7 +122,9 @@ def _get_training_args(
     run_name: str,
     epochs: int,
     batch_size: int,
+    tracking: bool = False,
 ) -> TrainingArguments:
+    report_to = "mlflow" if tracking else "none"
     have_cuda = torch.cuda.is_available()
     logdir = os.path.join("log", run_name)
 
@@ -212,7 +141,7 @@ def _get_training_args(
     logger.debug('logging to "%s"', logdir)
 
     return TrainingArguments(
-        report_to="mlflow",
+        report_to=report_to,
         run_name=run_name,
         output_dir=logdir,
         save_strategy="no",
@@ -238,7 +167,7 @@ def _get_peft_task(task: Task) -> TaskType:
     raise NotImplementedError(f"PEFT task type for {task}")
 
 
-def _log_params(model: PreTrainedModel) -> None:
+def _log_params(model: PreTrainedModel, tracking: bool = False) -> None:
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
@@ -246,5 +175,6 @@ def _log_params(model: PreTrainedModel) -> None:
     logger.debug("trainable parameters %d", trainable)
     logger.debug("trainable to total ratio %.2f", trainable / total)
 
-    mlflow.log_metric("total_parameters", total)
-    mlflow.log_metric("trainable_parameters", trainable)
+    if tracking:
+        mlflow.log_metric("total_parameters", total)
+        mlflow.log_metric("trainable_parameters", trainable)

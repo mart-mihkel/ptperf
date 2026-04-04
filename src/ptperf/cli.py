@@ -20,12 +20,11 @@ def main(
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
 ) -> None:
     import os
-    import time
 
     import mlflow
 
     from ptperf.logging import logger
-    from ptperf.scripts import fine_tune, lora, prefix_tune
+    from ptperf.scripts import fine_tune
 
     logger.setLevel(log_level)
 
@@ -46,24 +45,9 @@ def main(
     mlflow.log_param("method", method)
     mlflow.log_param("model", model)
 
-    start = time.time()
-
-    if method == "fine-tune":
-        fine_tune(model, task, run_name, epochs, batch_size)
-    elif method == "lora":
-        lora(model, task, run_name, epochs, batch_size)
-    elif method == "prefix-tune":
-        prefix_tune(model, task, run_name, epochs, batch_size)
-    else:
-        raise NotImplementedError(f"Method: {method}")
-
-    elapsed = time.time() - start
+    fine_tune(model, task, method, run_name, epochs, batch_size, tracking=True)
 
     mlflow.end_run()
-
-    hours, remainder = divmod(int(elapsed), 3600)
-    minutes, seconds = divmod(remainder, 60)
-    logger.info("time elapsed %02d:%02d:%02d", hours, minutes, seconds)
 
 
 if __name__ == "__main__":
