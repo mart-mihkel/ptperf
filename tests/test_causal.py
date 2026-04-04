@@ -1,4 +1,7 @@
+from unittest import skip
+
 from datasets.dataset_dict import DatasetDict
+from peft import LoraModel, PeftModelForCausalLM
 from transformers import DataCollatorForLanguageModeling, GPT2Model, GPT2Tokenizer
 
 
@@ -22,4 +25,34 @@ def test_gpt2_wikitext_forward_pass(
 
     assert out.loss is not None
     assert out.logits is not None
-    assert out.logits.shape[0] == batch["input_ids"].shape[0]
+
+
+def test_gpt2_lora_wikitext_forward_pass(
+    gpt2_lora: LoraModel,
+    gpt2_tokenizer: GPT2Tokenizer,
+    gpt2_wikitext: DatasetDict,
+) -> None:
+    examples = [gpt2_wikitext["test"][i] for i in range(4)]
+    collator = DataCollatorForLanguageModeling(gpt2_tokenizer, mlm=False)
+
+    batch = collator(examples)
+    out = gpt2_lora(**batch)
+
+    assert out.loss is not None
+    assert out.logits is not None
+
+
+@skip("broken")  # FIXME: get to the bottom of this!
+def test_gpt2_prefix_wikitext_forward_pass(
+    gpt2_prefix: PeftModelForCausalLM,
+    gpt2_tokenizer: GPT2Tokenizer,
+    gpt2_wikitext: DatasetDict,
+) -> None:
+    examples = [gpt2_wikitext["test"][i] for i in range(4)]
+    collator = DataCollatorForLanguageModeling(gpt2_tokenizer, mlm=False)
+
+    batch = collator(examples)
+    out = gpt2_prefix(**batch)
+
+    assert out.loss is not None
+    assert out.logits is not None

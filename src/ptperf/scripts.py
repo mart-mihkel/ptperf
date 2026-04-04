@@ -1,4 +1,3 @@
-import os
 from typing import cast
 
 import mlflow
@@ -40,20 +39,8 @@ def fine_tune(
     data = load_data(tokenizer, config, task)
 
     logger.info("prepare model")
-    model = _load_model(model_path, task)
-
-    if method == "lora":
-        logger.info("prepare lora model")
-        peft_config = LoraConfig()
-        model = get_peft_model(model, peft_config)
-    elif method == "prefix-tune":
-        logger.info("prepare prefix tuning model")
-        task_type = _get_peft_task(task)
-        peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=1)
-        model = get_peft_model(model, peft_config)
-    elif method != "fine-tune":
-        raise NotImplementedError(f"Method: {method}")
-
+    model = _load_base_model(model_path, task)
+    model = _prepare_model(model, task, method)
     _log_params(model, tracking)
 
     collator = _load_collator(tokenizer, task)
@@ -84,7 +71,7 @@ def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
     return tokenizer
 
 
-def _load_model(model_path: str, task: Task) -> PreTrainedModel:
+def _load_base_model(model_path: str, task: Task) -> PreTrainedModel:
     logger.debug('load "%s" for %s', model_path, task)
 
     if task == "causal-lm":
@@ -118,6 +105,28 @@ def _load_collator(tokenizer: PreTrainedTokenizerFast, task: Task) -> DataCollat
     raise NotImplementedError(f"Collator for task: {task}")
 
 
+def _prepare_model(
+    model: PreTrainedModel,
+    task: Task,
+    method: Method,
+) -> PreTrainedModel:
+    if method == "fine-tune":
+        return model
+
+    if method == "lora":
+        logger.info("prepare lora model")
+        peft_config = LoraConfig()
+        return get_peft_model(model, peft_config)
+
+    if method == "prefix-tune":
+        logger.info("prepare prefix tuning model")
+        task_type = _get_peft_task(task)
+        peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=10)
+        return get_peft_model(model, peft_config)
+
+    raise NotImplementedError(f"Method: {method}")
+
+
 def _get_training_args(
     run_name: str,
     epochs: int,
@@ -126,7 +135,6 @@ def _get_training_args(
 ) -> TrainingArguments:
     report_to = "mlflow" if tracking else "none"
     have_cuda = torch.cuda.is_available()
-    logdir = os.path.join("log", run_name)
 
     if have_cuda:
         logger.debug("have accelerator")
@@ -138,12 +146,10 @@ def _get_training_args(
         optim = "adamw_torch_fused"
 
     logger.debug('using "%s" optimizer', optim)
-    logger.debug('logging to "%s"', logdir)
 
     return TrainingArguments(
         report_to=report_to,
         run_name=run_name,
-        output_dir=logdir,
         save_strategy="no",
         eval_strategy="epoch",
         logging_steps=500,

@@ -2,6 +2,7 @@ from typing import cast
 
 from datasets.dataset_dict import DatasetDict
 from datasets.splits import Split
+from peft import LoraModel, PeftModelForCausalLM, PeftModelForSeq2SeqLM
 from pytest import fixture
 from transformers import (
     AutoConfig,
@@ -17,6 +18,7 @@ from transformers import (
 )
 
 from ptperf.datasets import load_data
+from ptperf.scripts import _prepare_model
 
 _gpt2 = "hf-internal-testing/tiny-random-gpt2"
 _t5 = "hf-internal-testing/tiny-random-t5"
@@ -27,6 +29,20 @@ def gpt2() -> GPT2Model:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
     return cast(GPT2Model, model)
+
+
+@fixture(scope="session")
+def gpt2_lora() -> LoraModel:
+    model = AutoModelForCausalLM.from_pretrained(_gpt2)
+    model = _prepare_model(model, "causal-lm", "lora")
+    return cast(LoraModel, model)
+
+
+@fixture(scope="session")
+def gpt2_prefix() -> PeftModelForCausalLM:
+    model = AutoModelForCausalLM.from_pretrained(_gpt2)
+    model = _prepare_model(model, "causal-lm", "prefix-tune")
+    return cast(PeftModelForCausalLM, model)
 
 
 @fixture(scope="session")
@@ -63,6 +79,20 @@ def gpt2_wikitext(
 def t5() -> T5Model:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
     return cast(T5Model, model)
+
+
+@fixture(scope="session")
+def t5_lora() -> LoraModel:
+    model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
+    model = _prepare_model(model, "seq2seq", "lora")
+    return cast(LoraModel, model)
+
+
+@fixture(scope="session")
+def t5_prefix() -> PeftModelForSeq2SeqLM:
+    model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
+    model = _prepare_model(model, "seq2seq", "prefix-tune")
+    return cast(PeftModelForSeq2SeqLM, model)
 
 
 @fixture(scope="session")

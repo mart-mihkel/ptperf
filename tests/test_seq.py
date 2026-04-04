@@ -1,4 +1,5 @@
 from datasets.dataset_dict import DatasetDict
+from peft import LoraModel, PeftModelForSeq2SeqLM
 from transformers import DataCollatorForSeq2Seq, T5Model, T5Tokenizer
 
 
@@ -19,6 +20,36 @@ def test_t5_samsum_forward_pass(
 
     batch = collator(examples)
     out = t5(**batch)
+
+    assert out.loss is not None
+    assert out.logits is not None
+
+
+def test_t5_lora_samsum_forward_pass(
+    t5_lora: LoraModel,
+    t5_tokenizer: T5Tokenizer,
+    t5_samsum: DatasetDict,
+) -> None:
+    examples = [t5_samsum["test"][i] for i in range(4)]
+    collator = DataCollatorForSeq2Seq(t5_tokenizer)
+
+    batch = collator(examples)
+    out = t5_lora(**batch)
+
+    assert out.loss is not None
+    assert out.logits is not None
+
+
+def test_t5_prefix_samsum_forward_pass(
+    t5_prefix: PeftModelForSeq2SeqLM,
+    t5_tokenizer: T5Tokenizer,
+    t5_samsum: DatasetDict,
+) -> None:
+    examples = [t5_samsum["test"][i] for i in range(4)]
+    collator = DataCollatorForSeq2Seq(t5_tokenizer)
+
+    batch = collator(examples)
+    out = t5_prefix(**batch)
 
     assert out.loss is not None
     assert out.logits is not None

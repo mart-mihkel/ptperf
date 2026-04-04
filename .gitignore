@@ -6,5 +6,4 @@ wheels/
 *.egg-info
 .venv
 .envrc
-log/
 *.db
