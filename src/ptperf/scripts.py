@@ -35,7 +35,7 @@ def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
 
 
 def _load_model(model_path: str, task: Task) -> PreTrainedModel:
-    logger.debug("load pretrained %s model for %s", model_path, task)
+    logger.debug("load pretrained %s for %s", model_path, task)
 
     if task == "causal-lm":
         model = AutoModelForCausalLM.from_pretrained(model_path)
@@ -89,6 +89,7 @@ def _get_training_args(
     logger.debug("using %s optimizer", optim)
 
     return TrainingArguments(
+        report_to="mlflow",
         run_name=run_name,
         output_dir=logdir,
         save_strategy="no",
