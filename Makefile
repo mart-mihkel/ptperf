@@ -6,7 +6,7 @@ pre-commit:
 	@uv run ty check
 
 test:
-	@uv run pytest --quiet
+	@uv run pytest --quiet --numprocesses 4
 
 sync:
 	rsync --verbose --archive --delete \
