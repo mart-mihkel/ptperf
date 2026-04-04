@@ -2,7 +2,6 @@ import logging
 
 import accelerate
 import datasets
-import evaluate
 import httpx
 import numpy
 import torch
@@ -15,7 +14,6 @@ _suppress = [
     transformers,
     accelerate,
     datasets,
-    evaluate,
     torch,
     httpx,
     numpy,
