@@ -1,7 +1,9 @@
 import os
 from typing import cast
 
+import mlflow
 import torch
+from peft import LoraConfig, get_peft_model
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -19,6 +21,82 @@ from transformers import (
 from ptperf.datasets import load_data
 from ptperf.logging import logger
 from ptperf.types import Task
+
+
+def fine_tune(
+    model_path: str,
+    task: Task,
+    run_name: str,
+    epochs: int,
+    batch_size: int,
+) -> None:
+    logger.debug('load "%s" config', model_path)
+    config = AutoConfig.from_pretrained(model_path)
+    tokenizer = _load_tokenizer(model_path)
+
+    logger.info("prepare data")
+    data = load_data(tokenizer, config, task)
+
+    logger.info("prepare model")
+    model = _load_model(model_path, task)
+    _log_params(model)
+
+    collator = _load_collator(tokenizer, task)
+    args = _get_training_args(run_name, epochs, batch_size)
+
+    trainer = Trainer(
+        args=args,
+        model=model,
+        data_collator=collator,
+        train_dataset=data["train"],
+        eval_dataset=data["validation"],
+    )
+
+    logger.info("start trainer")
+    trainer.train()
+
+    logger.info('save checkpoint to "%s"', args.output_dir)
+    trainer.save_model()
+
+
+def lora(
+    model_path: str,
+    task: Task,
+    run_name: str,
+    epochs: int,
+    batch_size: int,
+) -> None:
+    logger.debug('load "%s" config', model_path)
+    config = AutoConfig.from_pretrained(model_path)
+    tokenizer = _load_tokenizer(model_path)
+
+    logger.info("prepare data")
+    data = load_data(tokenizer, config, task)
+
+    logger.info("prepare base model")
+    model = _load_model(model_path, task)
+
+    logger.info("prepare lora model")
+    peft_config = LoraConfig()
+    model = get_peft_model(model, peft_config)
+    _log_params(model)
+
+    collator = _load_collator(tokenizer, task)
+    args = _get_training_args(run_name, epochs, batch_size)
+
+    trainer = Trainer(
+        args=args,
+        model=model,
+        data_collator=collator,
+        train_dataset=data["train"],
+        eval_dataset=data["validation"],
+    )
+
+    logger.info("start trainer")
+    trainer.train()
+
+    logger.info('save checkpoint to "%s"', args.output_dir)
+    trainer.save_model()
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -105,35 +183,13 @@ def _get_training_args(
     )
 
 
-def fine_tune(
-    model_path: str,
-    task: Task,
-    run_name: str,
-    epochs: int,
-    batch_size: int,
-) -> None:
-    logger.debug('load "%s" config', model_path)
-    config = AutoConfig.from_pretrained(model_path)
-    tokenizer = _load_tokenizer(model_path)
+def _log_params(model: PreTrainedModel) -> None:
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    logger.info("prepare data")
-    data = load_data(tokenizer, config, task)
+    logger.debug("total parameters %d", total)
+    logger.debug("trainable parameters %d", trainable)
+    logger.debug("trainable to total ratio %.2f", trainable / total)
 
-    logger.info("prepare model")
-    model = _load_model(model_path, task)
-    collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size)
-
-    trainer = Trainer(
-        args=args,
-        model=model,
-        data_collator=collator,
-        train_dataset=data["train"],
-        eval_dataset=data["validation"],
-    )
-
-    logger.info("start trainer")
-    trainer.train()
-
-    logger.info('save checkpoint to "%s"', args.output_dir)
-    trainer.save_model()
+    mlflow.log_metric("total_parameters", total)
+    mlflow.log_metric("trainable_parameters", trainable)

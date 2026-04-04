@@ -25,7 +25,7 @@ def main(
     import mlflow
 
     from ptperf.logging import logger
-    from ptperf.scripts import fine_tune
+    from ptperf.scripts import fine_tune, lora
 
     logger.setLevel(log_level)
 
@@ -50,6 +50,8 @@ def main(
 
     if method == "fine-tune":
         fine_tune(model, task, run_name, epochs, batch_size)
+    elif method == "lora":
+        lora(model, task, run_name, epochs, batch_size)
     else:
         raise NotImplementedError(f"Method: {method}")
 
