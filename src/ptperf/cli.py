@@ -11,7 +11,7 @@ app = Typer(no_args_is_help=True)
 
 @app.command(no_args_is_help=True)
 def main(
-    model_path: Annotated[
+    model: Annotated[
         str,
         Option(help="HuggingFace model or path to a local checkpoint"),
     ],
@@ -37,18 +37,22 @@ def main(
         tracking_uri = "sqlite:///mlflow.db"
         logger.warning("MLFLOW_TRACKING_URI is unset")
 
-    logger.info("tracking run %s of experiment ptperf at %s", run_name, tracking_uri)
+    logger.info(
+        'tracking run "%s" of experiment "ptperf" at %s',
+        run_name,
+        tracking_uri,
+    )
 
     mlflow.set_experiment("ptperf")
     mlflow.start_run(run_name=run_name)
     mlflow.log_param("task", task)
     mlflow.log_param("method", method)
-    mlflow.log_param("model", model_path)
+    mlflow.log_param("model", model)
 
     start = time.time()
 
     if method == "fine-tune":
-        fine_tune(model_path, task, run_name, epochs, batch_size)
+        fine_tune(model, task, run_name, epochs, batch_size)
     else:
         raise NotImplementedError(f"Method: {method}")
 

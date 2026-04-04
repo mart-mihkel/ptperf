@@ -31,21 +31,20 @@ def load_data(
         return load_wikitext(tokenizer, config, split)
 
     if task == "seq2seq":
-        return load_samsum(tokenizer, config, split)
+        return load_samsum(tokenizer, split)
 
     raise NotImplementedError(f"Dataset for task: {task}")
 
 
 def load_samsum(
     tokenizer: PreTrainedTokenizerFast,
-    config: PreTrainedConfig,
     split: Split | None = None,
 ) -> DatasetDict:
     logger.debug("load samsum")
     raw = load_dataset("knkarthick/samsum", split=split)
 
     cols = ["id", "dialogue", "summary"]
-    fn_kwargs = {"tokenizer": tokenizer, "config": config}
+    fn_kwargs = {"tokenizer": tokenizer}
     data = raw.map(_tokenize_samsum, remove_columns=cols, fn_kwargs=fn_kwargs)
 
     return data

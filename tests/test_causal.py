@@ -15,25 +15,25 @@ from transformers import (
 
 from ptperf.datasets import load_data
 
-test_gpt2 = "hf-internal-testing/tiny-random-gpt2"
+_gpt2 = "hf-internal-testing/tiny-random-gpt2"
 
 
 @fixture(scope="session")
 def gpt2() -> GPT2Model:
-    model = AutoModelForCausalLM.from_pretrained(test_gpt2)
+    model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
     return cast(GPT2Model, model)
 
 
 @fixture(scope="session")
 def gpt2_config() -> GPT2Config:
-    config = AutoConfig.from_pretrained(test_gpt2)
+    config = AutoConfig.from_pretrained(_gpt2)
     return cast(GPT2Config, config)
 
 
 @fixture(scope="session")
 def gpt2_tokenizer() -> GPT2Tokenizer:
-    tokenizer = AutoTokenizer.from_pretrained(test_gpt2)
+    tokenizer = AutoTokenizer.from_pretrained(_gpt2)
     tokenizer = cast(GPT2Tokenizer, tokenizer)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.pad_token_id = tokenizer.eos_token_id
