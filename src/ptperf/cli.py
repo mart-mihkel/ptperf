@@ -11,10 +11,7 @@ app = Typer(no_args_is_help=True)
 
 @app.command(no_args_is_help=True)
 def main(
-    model: Annotated[
-        str,
-        Option(help="HuggingFace model or path to a local checkpoint"),
-    ],
+    model: Annotated[str, Option(help="HuggingFace model or path to checkpoint")],
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
     run_name: Annotated[str, Option(help="Run name for experiment tracking")],
@@ -58,7 +55,7 @@ def main(
 
     elapsed = time.time() - start
 
-    mlflow.end_run(run_name)
+    mlflow.end_run()
 
     hours, remainder = divmod(int(elapsed), 3600)
     minutes, seconds = divmod(remainder, 60)

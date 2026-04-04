@@ -16,7 +16,7 @@ uv sync --extra [cpu|cu130|rocm72]
 uv run cli --help
 ```
 
-## Experiment tracking
+## Tracking
 
 Experiment metrics are reported to `mlflow` and can be see by serving the ui
 

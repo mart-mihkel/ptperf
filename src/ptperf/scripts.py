@@ -22,7 +22,7 @@ from ptperf.types import Task
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
-    logger.debug("load pretrained tokenizer for %s", model_path)
+    logger.debug('load tokenizer for "%s"', model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer = cast(PreTrainedTokenizerFast, tokenizer)
 
@@ -35,7 +35,7 @@ def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
 
 
 def _load_model(model_path: str, task: Task) -> PreTrainedModel:
-    logger.debug("load pretrained %s for %s", model_path, task)
+    logger.debug('load "%s" for %s', model_path, task)
 
     if task == "causal-lm":
         model = AutoModelForCausalLM.from_pretrained(model_path)
@@ -81,12 +81,12 @@ def _get_training_args(
         logger.debug("using brain floating point 16")
         optim = "adamw_8bit"
     if not have_cuda:
-        logger.warning("no accelerator")
+        logger.warning("no accelerator available")
         logger.debug("using full precision floating point")
         optim = "adamw_torch_fused"
 
-    logger.debug("logdir %s", logdir)
-    logger.debug("using %s optimizer", optim)
+    logger.debug('using "%s" optimizer', optim)
+    logger.debug('logging to "%s"', logdir)
 
     return TrainingArguments(
         report_to="mlflow",
@@ -112,10 +112,14 @@ def fine_tune(
     epochs: int,
     batch_size: int,
 ) -> None:
-    logger.debug("load %s config", model_path)
+    logger.debug('load "%s" config', model_path)
     config = AutoConfig.from_pretrained(model_path)
     tokenizer = _load_tokenizer(model_path)
+
+    logger.info("prepare data")
     data = load_data(tokenizer, config, task)
+
+    logger.info("prepare model")
     model = _load_model(model_path, task)
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(run_name, epochs, batch_size)
@@ -128,5 +132,8 @@ def fine_tune(
         eval_dataset=data["validation"],
     )
 
+    logger.info("start trainer")
     trainer.train()
+
+    logger.info('save checkpoint to "%s"', args.output_dir)
     trainer.save_model()
