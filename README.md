@@ -12,13 +12,15 @@ uv sync --extra [cpu|cu130|rocm72]
 
 ## Usage
 
+All experiments are runnable trough the `cli`
+
 ```bash
 uv run cli --help
 ```
 
 ## Tracking
 
-Experiment metrics are reported to `mlflow` and can be see by serving the ui
+Experiment metrics are reported to `mlflow` and can be seen by serving the ui
 
 ```bash
 uv run mlflow ui
