@@ -3,7 +3,7 @@ from typing import cast
 
 import mlflow
 import torch
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, PrefixTuningConfig, TaskType, get_peft_model
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -78,15 +78,60 @@ def lora(
 
     logger.info("prepare lora model")
     peft_config = LoraConfig()
-    model = get_peft_model(model, peft_config)
-    _log_params(model)
+    peft_model = get_peft_model(model, peft_config)
+    del model
+
+    _log_params(peft_model)
 
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(run_name, epochs, batch_size)
 
     trainer = Trainer(
         args=args,
-        model=model,
+        model=peft_model,
+        data_collator=collator,
+        train_dataset=data["train"],
+        eval_dataset=data["validation"],
+    )
+
+    logger.info("start trainer")
+    trainer.train()
+
+    logger.info('save checkpoint to "%s"', args.output_dir)
+    trainer.save_model()
+
+
+def prefix_tune(
+    model_path: str,
+    task: Task,
+    run_name: str,
+    epochs: int,
+    batch_size: int,
+) -> None:
+    logger.debug('load "%s" config', model_path)
+    config = AutoConfig.from_pretrained(model_path)
+    tokenizer = _load_tokenizer(model_path)
+
+    logger.info("prepare data")
+    data = load_data(tokenizer, config, task)
+
+    logger.info("prepare base model")
+    model = _load_model(model_path, task)
+
+    logger.info("prepare prefix tuning model")
+    task_type = _get_peft_task(task)
+    peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=1)
+    peft_model = get_peft_model(model, peft_config)
+    del model
+
+    _log_params(peft_model)
+
+    collator = _load_collator(tokenizer, task)
+    args = _get_training_args(run_name, epochs, batch_size)
+
+    trainer = Trainer(
+        args=args,
+        model=peft_model,
         data_collator=collator,
         train_dataset=data["train"],
         eval_dataset=data["validation"],
@@ -181,6 +226,16 @@ def _get_training_args(
         bf16=have_cuda,
         optim=optim,
     )
+
+
+def _get_peft_task(task: Task) -> TaskType:
+    if task == "causal-lm":
+        return TaskType.CAUSAL_LM
+
+    if task == "seq2seq":
+        return TaskType.SEQ_2_SEQ_LM
+
+    raise NotImplementedError(f"PEFT task type for {task}")
 
 
 def _log_params(model: PreTrainedModel) -> None:

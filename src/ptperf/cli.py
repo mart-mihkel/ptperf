@@ -25,7 +25,7 @@ def main(
     import mlflow
 
     from ptperf.logging import logger
-    from ptperf.scripts import fine_tune, lora
+    from ptperf.scripts import fine_tune, lora, prefix_tune
 
     logger.setLevel(log_level)
 
@@ -52,6 +52,8 @@ def main(
         fine_tune(model, task, run_name, epochs, batch_size)
     elif method == "lora":
         lora(model, task, run_name, epochs, batch_size)
+    elif method == "prefix-tune":
+        prefix_tune(model, task, run_name, epochs, batch_size)
     else:
         raise NotImplementedError(f"Method: {method}")
 
