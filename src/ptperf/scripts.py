@@ -4,8 +4,12 @@ import torch
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
+    AutoModelForSeq2SeqLM,
     AutoTokenizer,
+    DataCollator,
     DataCollatorForLanguageModeling,
+    DataCollatorForSeq2Seq,
+    PreTrainedModel,
     PreTrainedTokenizerFast,
     Trainer,
     TrainingArguments,
@@ -16,10 +20,7 @@ from ptperf.logging import logger
 from ptperf.types import Task
 
 
-def fine_tune(model_path: str, task: Task):
-    logger.debug("load pretrained model config of %s", model_path)
-    config = AutoConfig.from_pretrained(model_path)
-
+def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
     logger.debug("load pretrained tokenizer for %s", model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     tokenizer = cast(PreTrainedTokenizerFast, tokenizer)
@@ -29,26 +30,56 @@ def fine_tune(model_path: str, task: Task):
         tokenizer.pad_token = tokenizer.eos_token
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    logger.debug("prepare %s dataset", task)
-    data = load_data(task, tokenizer, config)
-    assert "train" in data, "No train data"
-    assert "validation" in data, "No eval data"
+    return tokenizer
 
-    logger.debug("load pretrained %s model", model_path)
-    model = AutoModelForCausalLM.from_pretrained(model_path)
 
+def _load_model(model_path: str, task: Task) -> PreTrainedModel:
+    logger.debug("load pretrained %s model for %s", model_path, task)
+
+    if task == "causal-lm":
+        model = AutoModelForCausalLM.from_pretrained(model_path)
+    elif task == "seq2seq":
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+    else:
+        raise NotImplementedError(f"Model for task: {task}")
+
+    model = cast(PreTrainedModel, model)
     if model.config.pad_token_id is None:
         logger.warning("model doesn't have a padding token, using eos")
         model.config.pad_token_id = model.config.eos_token_id
 
+    return model
+
+
+def _load_collator(tokenizer: PreTrainedTokenizerFast, task: Task) -> DataCollator:
+    logger.debug("prepare data collator for %s", task)
+
+    if task == "causal-lm":
+        return DataCollatorForLanguageModeling(
+            tokenizer,
+            mlm=False,
+            pad_to_multiple_of=8,
+        )
+
+    if task == "seq2seq":
+        return DataCollatorForSeq2Seq(tokenizer, pad_to_multiple_of=8)
+
+    raise NotImplementedError(f"Collator for task: {task}")
+
+
+def _get_training_args() -> TrainingArguments:
     have_cuda = torch.cuda.is_available()
-    optim = "adamw_8bit"
 
+    if have_cuda:
+        logger.debug("have accelerator")
+        optim = "adamw_8bit"
     if not have_cuda:
-        optim = "adamw_torch_fused"
         logger.warning("no accelerator")
+        optim = "adamw_torch_fused"
 
-    args = TrainingArguments(
+    logger.debug("using %s optimizer", optim)
+
+    return TrainingArguments(
         output_dir="out/test",
         save_strategy="no",
         eval_strategy="epoch",
@@ -62,11 +93,15 @@ def fine_tune(model_path: str, task: Task):
         optim=optim,
     )
 
-    collator = DataCollatorForLanguageModeling(
-        tokenizer,
-        mlm=False,
-        pad_to_multiple_of=8,
-    )
+
+def fine_tune(model_path: str, task: Task):
+    logger.debug("load %s config", model_path)
+    config = AutoConfig.from_pretrained(model_path)
+    tokenizer = _load_tokenizer(model_path)
+    data = load_data(tokenizer, config, task)
+    model = _load_model(model_path, task)
+    collator = _load_collator(tokenizer, task)
+    args = _get_training_args()
 
     trainer = Trainer(
         args=args,

@@ -20,11 +20,13 @@ class WikiTextExample(TypedDict):
 
 
 def load_data(
-    task: Task,
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
+    task: Task,
     split: Split | None = None,
 ) -> DatasetDict:
+    logger.debug("prepare dataset for %s", task)
+
     if task == "causal-lm":
         return load_wikitext(tokenizer, config, split)
 
@@ -39,6 +41,7 @@ def load_samsum(
     config: PreTrainedConfig,
     split: Split | None = None,
 ) -> DatasetDict:
+    logger.debug("load samsum")
     raw = load_dataset("knkarthick/samsum", split=split)
 
     cols = ["id", "dialogue", "summary"]
@@ -63,6 +66,7 @@ def load_wikitext(
     config: PreTrainedConfig,
     split: Split | None = None,
 ) -> DatasetDict:
+    logger.debug("load wikitext")
     raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split=split)
 
     logger.debug("filter empty sequences")

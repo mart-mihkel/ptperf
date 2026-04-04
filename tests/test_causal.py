@@ -1,6 +1,7 @@
 from typing import cast
 
 from datasets.dataset_dict import DatasetDict
+from datasets.splits import Split
 from pytest import fixture
 from transformers import (
     AutoConfig,
@@ -44,7 +45,14 @@ def gpt2_wikitext(
     gpt2_config: GPT2Config,
     gpt2_tokenizer: GPT2Tokenizer,
 ) -> DatasetDict:
-    return load_data("causal-lm", gpt2_tokenizer, gpt2_config)
+    split = {
+        "train": "train[:10]",
+        "validation": "validation[:10]",
+        "test": "test[:10]",
+    }
+
+    split = cast(Split, split)
+    return load_data(gpt2_tokenizer, gpt2_config, "causal-lm", split)
 
 
 def test_gpt2_wikitext(gpt2_wikitext: DatasetDict) -> None:
