@@ -15,8 +15,8 @@ def main(
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
     run_name: Annotated[str, Option(help="Run name for experiment tracking")],
-    epochs: Annotated[int, Option()] = 3,
-    batch_size: Annotated[int, Option()] = 8,
+    epochs: int = 3,
+    batch_size: int = 8,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
 ) -> None:
     import os
