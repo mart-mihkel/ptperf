@@ -59,7 +59,7 @@ def test_gpt2_wikitext_forward_pass(
     gpt2_tokenizer: GPT2Tokenizer,
     gpt2_wikitext: DatasetDict,
 ) -> None:
-    examples = [gpt2_wikitext["train"][i] for i in range(4)]
+    examples = [gpt2_wikitext["test"][i] for i in range(4)]
     collator = DataCollatorForLanguageModeling(gpt2_tokenizer, mlm=False)
 
     batch = collator(examples)

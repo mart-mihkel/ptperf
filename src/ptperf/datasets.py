@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from datasets.dataset_dict import DatasetDict
 from datasets.load import load_dataset
+from datasets.splits import Split
 from transformers import BatchEncoding, PreTrainedConfig, PreTrainedTokenizerFast
 
 from ptperf.logging import logger
@@ -22,12 +23,13 @@ def load_data(
     task: Task,
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
+    split: Split | None = None,
 ) -> DatasetDict:
     if task == "causal-lm":
-        return load_wikitext(tokenizer, config)
+        return load_wikitext(tokenizer, config, split)
 
     if task == "seq2seq":
-        return load_samsum(tokenizer, config)
+        return load_samsum(tokenizer, config, split)
 
     raise NotImplementedError(f"Dataset for task: {task}")
 
@@ -35,8 +37,9 @@ def load_data(
 def load_samsum(
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
+    split: Split | None = None,
 ) -> DatasetDict:
-    raw = load_dataset("knkarthick/samsum")
+    raw = load_dataset("knkarthick/samsum", split=split)
 
     cols = ["id", "dialogue", "summary"]
     fn_kwargs = {"tokenizer": tokenizer, "config": config}
@@ -58,8 +61,9 @@ def _tokenize_samsum(
 def load_wikitext(
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
+    split: Split | None = None,
 ) -> DatasetDict:
-    raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1")
+    raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split=split)
 
     logger.debug("filter empty sequences")
     raw = raw.filter(lambda example: len(example["text"].strip()) > 0)
