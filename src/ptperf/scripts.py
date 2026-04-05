@@ -74,7 +74,7 @@ def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
 def _load_base_model(model_path: str, task: Task) -> PreTrainedModel:
     logger.debug('load "%s" for %s', model_path, task)
     dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-    
+
     if task == "causal-lm":
         model = AutoModelForCausalLM.from_pretrained(model_path, dtype=dtype)
     elif task == "seq2seq":
@@ -113,14 +113,14 @@ def _prepare_model(
 ) -> PreTrainedModel:
     if method == "fine-tune":
         return model
-    
+
     task_type = _get_peft_task(task)
 
     if method == "lora":
         logger.info("prepare lora model")
         peft_config = LoraConfig(
             task_type=task_type
-            #target_modules=["q_proj", "v_proj"]
+            # target_modules=["q_proj", "v_proj"]
         )
         return get_peft_model(model, peft_config)
 
@@ -166,7 +166,7 @@ def _get_training_args(
         bf16=have_cuda,
         optim=optim,
         gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False}
+        gradient_checkpointing_kwargs={"use_reentrant": False},
     )
 
 
