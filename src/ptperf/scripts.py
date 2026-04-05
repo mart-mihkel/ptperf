@@ -113,15 +113,19 @@ def _prepare_model(
 ) -> PreTrainedModel:
     if method == "fine-tune":
         return model
+    
+    task_type = _get_peft_task(task)
 
     if method == "lora":
         logger.info("prepare lora model")
-        peft_config = LoraConfig()
+        peft_config = LoraConfig(
+            task_type=task_type
+            #target_modules=["q_proj", "v_proj"]
+        )
         return get_peft_model(model, peft_config)
 
     if method == "prefix-tune":
         logger.info("prepare prefix tuning model")
-        task_type = _get_peft_task(task)
         peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=10)
         return get_peft_model(model, peft_config)
 
