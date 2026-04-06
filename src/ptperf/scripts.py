@@ -29,6 +29,7 @@ def fine_tune(
     run_name: str,
     epochs: int,
     batch_size: int,
+    grad_chkpt: bool = False,
     tracking: bool = False,
 ) -> None:
     logger.debug('load "%s" config', model_path)
@@ -44,7 +45,7 @@ def fine_tune(
     _log_params(model, tracking)
 
     collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size, tracking)
+    args = _get_training_args(run_name, epochs, batch_size, grad_chkpt, tracking)
 
     trainer = Trainer(
         args=args,
@@ -136,6 +137,7 @@ def _get_training_args(
     run_name: str,
     epochs: int,
     batch_size: int,
+    grad_chkpt: bool = False,
     tracking: bool = False,
 ) -> TrainingArguments:
     report_to = "mlflow" if tracking else "none"
@@ -145,10 +147,17 @@ def _get_training_args(
         logger.debug("have accelerator")
         logger.debug("using brain floating point 16")
         optim = "adamw_8bit"
-    if not have_cuda:
+    else:
         logger.warning("no accelerator available")
         logger.debug("using full precision floating point")
         optim = "adamw_torch_fused"
+
+    if grad_chkpt:
+        grad_chkpt_kwargs = {"use_reentrant": False}
+        logger.debug("using gradient checkpointing with %s", grad_chkpt_kwargs)
+    else:
+        grad_chkpt_kwargs = None
+        logger.debug("not using gradient checkpointing")
 
     logger.debug('using "%s" optimizer', optim)
 
@@ -165,8 +174,8 @@ def _get_training_args(
         bf16_full_eval=have_cuda,
         bf16=have_cuda,
         optim=optim,
-        gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
+        gradient_checkpointing=grad_chkpt,
+        gradient_checkpointing_kwargs=grad_chkpt_kwargs,
     )
 
 

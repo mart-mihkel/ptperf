@@ -14,9 +14,14 @@ def main(
     model: Annotated[str, Option(help="HuggingFace model or path to checkpoint")],
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
-    run_name: Annotated[str, Option(help="Run name for experiment tracking")],
+    experiment: Annotated[str, Option(help="Experiment name for tracking")] = "ptperf",
+    run_name: Annotated[
+        str | None,
+        Option(help="Run name for tracking, inferred from parameters by default"),
+    ] = None,
     epochs: int = 3,
     batch_size: int = 8,
+    grad_chkpt: bool = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
 ) -> None:
     import os
@@ -33,19 +38,33 @@ def main(
         tracking_uri = "sqlite:///mlflow.db"
         logger.warning("MLFLOW_TRACKING_URI is unset")
 
+    if run_name is None:
+        run_name = f"{model}/{task}/{method}"
+        logger.debug('inferred run name "%s"', run_name)
+
     logger.info(
-        'tracking run "%s" of experiment "ptperf" at %s',
+        'tracking run "%s" of experiment "%s" at %s',
         run_name,
+        experiment,
         tracking_uri,
     )
 
-    mlflow.set_experiment("ptperf")
+    mlflow.set_experiment(experiment)
     mlflow.start_run(run_name=run_name)
     mlflow.log_param("task", task)
-    mlflow.log_param("method", method)
     mlflow.log_param("model", model)
+    mlflow.log_param("method", method)
 
-    fine_tune(model, task, method, run_name, epochs, batch_size, tracking=True)
+    fine_tune(
+        model_path=model,
+        task=task,
+        method=method,
+        run_name=run_name,
+        epochs=epochs,
+        batch_size=batch_size,
+        grad_chkpt=grad_chkpt,
+        tracking=True,
+    )
 
     mlflow.end_run()
 
