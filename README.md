@@ -4,10 +4,12 @@
 
 Use [uv](https://docs.astral.sh/uv/) for package management.
 
-Setup a virtualenv with your corresponding accelerator:
+Setup a virtualenv for cpu or your corresponding accelerator. When using an
+accelerator you should also have cuda-toolkit or rocm-toolkit available on the
+system to compile `flash-attn`.
 
 ```bash
-uv sync --extra [cpu|cu130|rocm72]
+MAX_JOBS=[n-jobs] uv sync --compile-bytecode --extra [cpu|cu128|rocm72]
 ```
 
 ## Usage
