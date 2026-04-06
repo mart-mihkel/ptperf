@@ -19,7 +19,7 @@ def main(
         str | None,
         Option(help="Run name for tracking, inferred from parameters by default"),
     ] = None,
-    epochs: int = 3,
+    epochs: int = 1,
     batch_size: int = 8,
     grad_chkpt: bool = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
