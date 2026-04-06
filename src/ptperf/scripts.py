@@ -162,6 +162,7 @@ def _get_training_args(
     logger.debug('using "%s" optimizer', optim)
 
     return TrainingArguments(
+        output_dir="log",
         report_to=report_to,
         run_name=run_name,
         save_strategy="no",
