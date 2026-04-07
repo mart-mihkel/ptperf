@@ -14,10 +14,10 @@ MAX_JOBS=[n-jobs] uv sync --compile-bytecode --extra [cpu|cu128|rocm72]
 
 ## Usage
 
-All experiments are runnable trough the `cli`
+All experiments are runnable trough the `cli` installed in the virtualenv
 
 ```bash
-uv run cli --help
+cli --help
 ```
 
 ## Tracking
@@ -25,7 +25,7 @@ uv run cli --help
 Experiment metrics are reported to `mlflow` and can be seen by serving the ui
 
 ```bash
-uv run mlflow ui
+mlflow ui
 ```
 
 For tracking on a remote server set the `MLFLOW_TRACKING_URI` environment

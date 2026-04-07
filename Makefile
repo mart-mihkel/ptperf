@@ -1,4 +1,9 @@
 REMOTE ?=
+MAX_JOBS=4
+BACKEND=cpu
+
+install:
+	@MAX_JOBS=$(MAX_JOBS) uv sync --compile-bytecode --extra $(BACKEND)
 
 check:
 	@uv run --no-sync ruff check --fix
