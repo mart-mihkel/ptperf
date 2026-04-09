@@ -19,7 +19,7 @@ def main(
         Option(
             help="Number of virtual tokens for prefix tuning",
         ),
-    ],
+    ] = None,
     experiment: Annotated[str, Option(help="Experiment name for tracking")] = "ptperf",
     run_name: Annotated[
         str | None,
