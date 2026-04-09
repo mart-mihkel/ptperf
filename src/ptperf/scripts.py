@@ -27,8 +27,9 @@ def fine_tune(
     task: Task,
     method: Method,
     run_name: str,
-    epochs: int,
-    batch_size: int,
+    num_virtual_tokens: int,
+    epochs: int = 1,
+    batch_size: int = 8,
     grad_chkpt: bool = False,
     tracking: bool = False,
 ) -> None:
@@ -41,14 +42,8 @@ def fine_tune(
     model = _prepare_model(model, task, method)
     _log_params(model, tracking)
 
-    prefix_length = 0
-    if hasattr(model, "peft_config"):
-        peft_cfg = next(iter(model.peft_config.values()))
-        if hasattr(peft_cfg, "num_virtual_tokens"):
-            prefix_length = peft_cfg.num_virtual_tokens
-
     logger.info("prepare data")
-    data = load_data(tokenizer, config, task, prefix_length=prefix_length)
+    data = load_data(tokenizer, config, task, num_virtual_tokens)
 
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(run_name, epochs, batch_size, grad_chkpt, tracking)
@@ -117,6 +112,7 @@ def _prepare_model(
     model: PreTrainedModel,
     task: Task,
     method: Method,
+    num_virtual_tokens: int = 0,
 ) -> PreTrainedModel:
     if method == "fine-tune":
         return model
@@ -125,15 +121,16 @@ def _prepare_model(
 
     if method == "lora":
         logger.info("prepare lora model")
-        peft_config = LoraConfig(
-            task_type=task_type
-            # target_modules=["q_proj", "v_proj"]
-        )
+        peft_config = LoraConfig(task_type=task_type)
         return get_peft_model(model, peft_config)
 
     if method == "prefix-tune":
         logger.info("prepare prefix tuning model")
-        peft_config = PrefixTuningConfig(task_type=task_type, num_virtual_tokens=10)
+        peft_config = PrefixTuningConfig(
+            task_type=task_type,
+            num_virtual_tokens=num_virtual_tokens,
+        )
+
         return get_peft_model(model, peft_config)
 
     raise NotImplementedError(f"Method: {method}")

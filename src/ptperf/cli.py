@@ -14,6 +14,12 @@ def main(
     model: Annotated[str, Option(help="HuggingFace model or path to checkpoint")],
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
+    num_virtual_tokens: Annotated[
+        int | None,
+        Option(
+            help="Number of virtual tokens for prefix tuning",
+        ),
+    ],
     experiment: Annotated[str, Option(help="Experiment name for tracking")] = "ptperf",
     run_name: Annotated[
         str | None,
@@ -32,6 +38,12 @@ def main(
     from ptperf.scripts import fine_tune
 
     logger.setLevel(log_level)
+
+    if num_virtual_tokens is None and method == "prefix-tune":
+        raise ValueError("num_virtual_tokens must be set for prefix-tuning")
+
+    if num_virtual_tokens is None:
+        num_virtual_tokens = 0
 
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri is None:
@@ -60,6 +72,7 @@ def main(
         task=task,
         method=method,
         run_name=run_name,
+        num_virtual_tokens=num_virtual_tokens,
         epochs=epochs,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,
