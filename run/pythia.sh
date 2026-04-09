@@ -2,7 +2,7 @@
 #SBATCH --output=log/slurm/%j-%x.out
 #SBATCH --gres=gpu:h200-141g:1
 #SBATCH --cpus-per-task=32
-#SBATCH --job-name="pythia"
+#SBATCH --job-name="gptneox"
 #SBATCH --partition=gpu
 #SBATCH --time=12:00:00
 #SBATCH --mem=32GB
@@ -17,18 +17,23 @@ MODELS=(
     EleutherAI/pythia-6.9b
 )
 
-METHODS=(
-    fine-tune
-    prefix-tune
-    lora
-)
-
 for MODEL in ${MODELS[@]}; do
-    for METHOD in ${METHODS[@]}; do
-        uv run --no-sync cli \
-            --log-level DEBUG \
-            --method $METHOD \
-            --model $MODEL \
-            --task causal-lm
-    done
+    uv run --no-sync cli \
+        --method fine-tune \
+        --log-level DEBUG \
+        --task causal-lm \
+        --model $MODEL
+
+    uv run --no-sync cli \
+        --num-virtual-tokens 10 \
+        --method prefix-tune \
+        --log-level DEBUG \
+        --task causal-lm \
+        --model $MODEL
+
+    uv run --no-sync cli \
+        --log-level DEBUG \
+        --task causal-lm \
+        --method lora \
+        --model $MODEL
 done
