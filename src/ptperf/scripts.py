@@ -36,13 +36,19 @@ def fine_tune(
     config = AutoConfig.from_pretrained(model_path)
     tokenizer = _load_tokenizer(model_path)
 
-    logger.info("prepare data")
-    data = load_data(tokenizer, config, task)
-
     logger.info("prepare model")
     model = _load_base_model(model_path, task)
     model = _prepare_model(model, task, method)
     _log_params(model, tracking)
+
+    prefix_length = 0
+    if hasattr(model, "peft_config"):
+        peft_cfg = next(iter(model.peft_config.values()))
+        if hasattr(peft_cfg, "num_virtual_tokens"):
+            prefix_length = peft_cfg.num_virtual_tokens
+
+    logger.info("prepare data")
+    data = load_data(tokenizer, config, task, prefix_length=prefix_length)
 
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(run_name, epochs, batch_size, grad_chkpt, tracking)

@@ -78,6 +78,31 @@ def gpt2_wikitext(
 
 
 @fixture(scope="session")
+def gpt2_prefix_wikitext(
+    gpt2_config: GPT2Config,
+    gpt2_tokenizer: GPT2Tokenizer,
+    gpt2_prefix: PeftModelForCausalLM,
+) -> DatasetDict:
+    split = cast(
+        Split,
+        {
+            "train": "train[:10]",
+            "validation": "validation[:10]",
+            "test": "test[:10]",
+        },
+    )
+    peft_cfg = next(iter(gpt2_prefix.peft_config.values()))
+    prefix_length = getattr(peft_cfg, "num_virtual_tokens", 0)
+    return load_data(
+        gpt2_tokenizer,
+        gpt2_config,
+        "causal-lm",
+        split,
+        prefix_length=prefix_length,
+    )
+
+
+@fixture(scope="session")
 def t5() -> T5Model:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
     return cast(T5Model, model)

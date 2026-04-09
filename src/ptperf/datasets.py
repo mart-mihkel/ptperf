@@ -24,11 +24,12 @@ def load_data(
     config: PreTrainedConfig,
     task: Task,
     split: Split | None = None,
+    prefix_length: int = 0,
 ) -> DatasetDict:
     logger.debug("prepare dataset for %s", task)
 
     if task == "causal-lm":
-        return load_wikitext(tokenizer, config, split)
+        return load_wikitext(tokenizer, config, split, prefix_length)
 
     if task == "seq2seq":
         return load_samsum(tokenizer, split)
@@ -64,6 +65,7 @@ def load_wikitext(
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
     split: Split | None = None,
+    prefix_length: int = 0,
 ) -> DatasetDict:
     logger.debug('load "Salesforce/wikitext" subtask "wikitext-2-raw-v1"')
     raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split=split)
@@ -72,7 +74,11 @@ def load_wikitext(
     raw = raw.filter(lambda example: len(example["text"].strip()) > 0)
 
     cols = ["text"]
-    fn_kwargs = {"tokenizer": tokenizer, "config": config}
+    fn_kwargs = {
+        "tokenizer": tokenizer,
+        "config": config,
+        "prefix_length": prefix_length,
+    }
     data = raw.map(_tokenize_wikitext, remove_columns=cols, fn_kwargs=fn_kwargs)
 
     return data
@@ -82,10 +88,11 @@ def _tokenize_wikitext(
     example: WikiTextExample,
     tokenizer: PreTrainedTokenizerFast,
     config: PreTrainedConfig,
+    prefix_length: int = 0,
 ) -> BatchEncoding:
     return tokenizer(
         example["text"],
         truncation=True,
         padding="max_length",
-        max_length=config.max_position_embeddings,
+        max_length=config.max_position_embeddings - prefix_length,
     )
