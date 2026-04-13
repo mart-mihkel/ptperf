@@ -1,3 +1,4 @@
+import time
 from typing import cast
 
 import mlflow
@@ -15,6 +16,7 @@ from transformers import (
     PreTrainedTokenizerFast,
     Trainer,
     TrainingArguments,
+    default_data_collator
 )
 
 from ptperf.datasets import load_data
@@ -56,8 +58,15 @@ def fine_tune(
         eval_dataset=data["validation"],
     )
 
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+
     logger.info("start trainer")
+    t0 = time.perf_counter()
     trainer.train()
+    wall_time = time.perf_counter() - t0
+
+    _log_hardware_metrics(trainer, wall_time, tracking)
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -96,12 +105,7 @@ def _load_collator(tokenizer: PreTrainedTokenizerFast, task: Task) -> DataCollat
     logger.debug("prepare data collator for %s", task)
 
     if task == "causal-lm":
-        return DataCollatorForLanguageModeling(
-            tokenizer,
-            mlm=False,
-            pad_to_multiple_of=8,
-        )
-
+        return default_data_collator
     if task == "seq2seq":
         return DataCollatorForSeq2Seq(tokenizer, pad_to_multiple_of=8)
 
@@ -204,3 +208,28 @@ def _log_params(model: PreTrainedModel, tracking: bool = False) -> None:
     if tracking:
         mlflow.log_metric("total_parameters", total)
         mlflow.log_metric("trainable_parameters", trainable)
+
+def _log_hardware_metrics(
+    trainer: Trainer,
+    wall_time: float,
+    tracking: bool = False,
+) -> None:
+    metrics: dict[str, float] = {"train_wall_time_s": wall_time}
+
+    if torch.cuda.is_available():
+        metrics["peak_gpu_memory_allocated_mb"] = (
+            torch.cuda.max_memory_allocated() / 1024**2
+        )
+        metrics["peak_gpu_memory_reserved_mb"] = (
+            torch.cuda.max_memory_reserved() / 1024**2
+        )
+
+    log_history = trainer.state.log_history
+    train_logs = [e for e in log_history if "train_samples_per_second" in e]
+    if train_logs:
+        metrics["train_samples_per_second"] = train_logs[-1]["train_samples_per_second"]
+
+    for k, v in metrics.items():
+        logger.info("%s: %.4f", k, v)
+        if tracking:
+            mlflow.log_metric(k, v)
