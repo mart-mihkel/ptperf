@@ -1,4 +1,5 @@
 from typing import TypedDict
+from itertools import chain
 
 from datasets.dataset_dict import DatasetDict
 from datasets.load import load_dataset
@@ -73,28 +74,49 @@ def load_wikitext(
     logger.debug("filter empty sequences")
     raw = raw.filter(lambda example: len(example["text"].strip()) > 0)
 
-    cols = ["text"]
-    fn_kwargs = {
-        "config": config,
-        "tokenizer": tokenizer,
-        "num_virtual_tokens": num_virtual_tokens,
-    }
+    block_size = min(512, config.max_position_embeddings - num_virtual_tokens)
 
-    data = raw.map(_tokenize_wikitext, remove_columns=cols, fn_kwargs=fn_kwargs)
+    cols = ["text"]
+    fn_kwargs = {"tokenizer": tokenizer}
+
+    tokenized = raw.map(
+        _tokenize_wikitext,
+        remove_columns=cols,
+        fn_kwargs=fn_kwargs,
+        batched=True,
+    )
+
+    data = tokenized.map(
+        _chunk_wikitext,
+        batched=True,
+        fn_kwargs={"block_size": block_size},
+    )
 
     return data
 
 
 def _tokenize_wikitext(
-    example: WikiTextExample,
+    examples: dict[str, list[str]],
     tokenizer: PreTrainedTokenizerFast,
-    config: PreTrainedConfig,
-    num_virtual_tokens: int,
 ) -> BatchEncoding:
-    max_length = config.max_position_embeddings - num_virtual_tokens
-    return tokenizer(
-        example["text"],
-        truncation=True,
-        padding="max_length",
-        max_length=max_length,
-    )
+    return tokenizer(examples["text"])
+
+
+def _chunk_wikitext(
+    examples: dict[str, list],
+    block_size: int,
+) -> dict[str, list]:
+    # concatenate all token ids into one long sequence
+    concatenated_examples = {k: list(chain(*examples[k])) for k in examples}
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+
+    # drop the last incomplete block
+    total_length = (total_length // block_size) * block_size
+
+    # Split by chunks of max_len.
+    result = {
+            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+            for k, t in concatenated_examples.items()
+        }
+    result["labels"] = result["input_ids"].copy()
+    return result
