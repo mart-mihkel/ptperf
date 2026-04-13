@@ -10,13 +10,12 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
     DataCollator,
-    DataCollatorForLanguageModeling,
     DataCollatorForSeq2Seq,
     PreTrainedModel,
     PreTrainedTokenizerFast,
     Trainer,
     TrainingArguments,
-    default_data_collator
+    default_data_collator,
 )
 
 from ptperf.datasets import load_data
@@ -208,6 +207,7 @@ def _log_params(model: PreTrainedModel, tracking: bool = False) -> None:
     if tracking:
         mlflow.log_metric("total_parameters", total)
         mlflow.log_metric("trainable_parameters", trainable)
+
 
 def _log_hardware_metrics(
     trainer: Trainer,

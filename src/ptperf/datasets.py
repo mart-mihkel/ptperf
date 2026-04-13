@@ -1,5 +1,5 @@
-from typing import TypedDict
 from itertools import chain
+from typing import TypedDict
 
 from datasets.dataset_dict import DatasetDict
 from datasets.load import load_dataset
@@ -108,15 +108,14 @@ def _chunk_wikitext(
 ) -> dict[str, list]:
     # concatenate all token ids into one long sequence
     concatenated_examples = {k: list(chain(*examples[k])) for k in examples}
-    total_length = len(concatenated_examples[list(examples.keys())[0]])
-
+    total_length = len(concatenated_examples[next(iter(examples.keys()))])
     # drop the last incomplete block
     total_length = (total_length // block_size) * block_size
 
     # Split by chunks of max_len.
     result = {
-            k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
-            for k, t in concatenated_examples.items()
-        }
+        k: [t[i : i + block_size] for i in range(0, total_length, block_size)]
+        for k, t in concatenated_examples.items()
+    }
     result["labels"] = result["input_ids"].copy()
     return result
