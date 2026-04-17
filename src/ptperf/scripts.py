@@ -3,7 +3,12 @@ from typing import cast
 
 import mlflow
 import torch
-from peft import LoraConfig, PrefixTuningConfig, TaskType, get_peft_model
+from peft import (
+    LoraConfig,
+    PrefixTuningConfig,
+    TaskType,
+    get_peft_model,
+)
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -40,7 +45,7 @@ def fine_tune(
 
     logger.info("prepare model")
     model = _load_base_model(model_path, task)
-    model = _prepare_model(model, task, method)
+    model = _prepare_model(model, task, method, num_virtual_tokens)
     _log_params(model, tracking)
 
     logger.info("prepare data")
