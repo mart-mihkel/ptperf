@@ -29,7 +29,7 @@ def main(
     batch_size: int = 8,
     grad_chkpt: bool = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
-    max_steps: int = 500,
+    max_steps: int = 1000,
 ) -> None:
     import os
 

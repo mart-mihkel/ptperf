@@ -228,12 +228,11 @@ def _log_hardware_metrics(
     metrics: dict[str, float] = {"train_wall_time_s": wall_time}
 
     if torch.cuda.is_available():
-        metrics["peak_gpu_memory_allocated_mb"] = (
-            torch.cuda.max_memory_allocated() / 1024**2
-        )
-        metrics["peak_gpu_memory_reserved_mb"] = (
-            torch.cuda.max_memory_reserved() / 1024**2
-        )
+        peak_alloc = torch.cuda.max_memory_allocated() / 1024**2
+        peak_reserved = torch.cuda.max_memory_reserved() / 1024**2
+
+        metrics["peak_gpu_memory_allocated_mb"] = peak_alloc
+        metrics["peak_gpu_memory_reserved_mb"] = peak_reserved
 
     log_history = trainer.state.log_history
     train_logs = [e for e in log_history if "train_samples_per_second" in e]
