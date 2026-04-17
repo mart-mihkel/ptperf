@@ -29,6 +29,7 @@ def main(
     batch_size: int = 8,
     grad_chkpt: bool = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
+    max_steps: int = 500,
 ) -> None:
     import os
 
@@ -77,6 +78,7 @@ def main(
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,
         tracking=True,
+        max_steps=max_steps,
     )
 
     mlflow.end_run()

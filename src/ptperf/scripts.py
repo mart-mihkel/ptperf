@@ -35,6 +35,7 @@ def fine_tune(
     run_name: str,
     num_virtual_tokens: int,
     epochs: int = 1,
+    max_steps: int | None = None,
     batch_size: int = 8,
     grad_chkpt: bool = False,
     tracking: bool = False,
@@ -52,7 +53,9 @@ def fine_tune(
     data = load_data(tokenizer, config, task, num_virtual_tokens)
 
     collator = _load_collator(tokenizer, task)
-    args = _get_training_args(run_name, epochs, batch_size, grad_chkpt, tracking)
+    args = _get_training_args(
+        run_name, epochs, batch_size, grad_chkpt, tracking, max_steps=max_steps
+    )
 
     trainer = Trainer(
         args=args,
@@ -150,6 +153,7 @@ def _get_training_args(
     batch_size: int,
     grad_chkpt: bool = False,
     tracking: bool = False,
+    max_steps: int | None = None,
 ) -> TrainingArguments:
     report_to = "mlflow" if tracking else "none"
     have_cuda = torch.cuda.is_available()
@@ -177,9 +181,11 @@ def _get_training_args(
         report_to=report_to,
         run_name=run_name,
         save_strategy="no",
-        eval_strategy="epoch",
-        logging_steps=500,
-        num_train_epochs=epochs,
+        eval_strategy="steps",
+        eval_steps=500,
+        logging_steps=100,
+        max_steps=max_steps if max_steps else -1,
+        num_train_epochs=epochs if max_steps is None else 1,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         use_cpu=not have_cuda,
