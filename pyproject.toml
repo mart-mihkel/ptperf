@@ -49,7 +49,7 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 [tool.ruff.lint]
-select = ["A", "F", "E", "W", "I", "C4", "FA", "UP", "RUF", "SIM", "ARG"]
+select = ["A", "F", "E", "W", "I", "C4", "FA", "UP", "RUF", "SIM", "ARG", "ANN"]
 
 [tool.uv]
 conflicts = [
