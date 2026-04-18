@@ -7,8 +7,6 @@ from transformers import (
     TrainingArguments,
 )
 
-from ptperf.logging import logger
-
 
 class HWMetricsCallback(TrainerCallback):
     def __init__(self, tracking: bool = False) -> None:
@@ -45,4 +43,4 @@ class HWMetricsCallback(TrainerCallback):
         metrics = metrics | torch.cuda.memory_stats()
 
         if self.tracking:
-            mlflow.log_metrics(metrics)
+            mlflow.log_metrics(metrics, step=state.global_step)

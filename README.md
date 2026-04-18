@@ -28,5 +28,8 @@ Experiment metrics are reported to `mlflow` and can be seen by serving the ui
 mlflow ui
 ```
 
-For tracking on a remote server set the `MLFLOW_TRACKING_URI` environment
-variable.
+Metrics can be exported to a csv with the `collect` script in the virtualenv
+
+```bash
+collect --help
+```

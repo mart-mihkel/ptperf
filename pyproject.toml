@@ -14,6 +14,7 @@ dependencies = [
     "mlflow==3.10.1",
     "typer==0.24.1",
     "peft==0.18.1",
+    "polars>=1.40.0",
 ]
 
 [dependency-groups]
@@ -40,6 +41,7 @@ rocm72 = [
 
 [project.scripts]
 cli = "ptperf.cli:app"
+collect = "ptperf.collect:app"
 
 [build-system]
 requires = ["hatchling==1.29.0"]
