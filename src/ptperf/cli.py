@@ -16,23 +16,26 @@ def main(
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
     num_virtual_tokens: Annotated[
         int | None,
-        Option(
-            help="Number of virtual tokens for prefix tuning",
-        ),
+        Option(help="Number of virtual tokens for prefix tuning"),
     ] = None,
     experiment: Annotated[str, Option(help="Experiment name for tracking")] = "ptperf",
     run_name: Annotated[
         str | None,
         Option(help="Run name for tracking, inferred from parameters by default"),
     ] = None,
+    tracking_uri: Annotated[
+        str,
+        Option(help="Experiment tracking host or path", envvar="MLFLOW_TRACKING_URI"),
+    ] = "sqlite:///mlflow.db",
     epochs: int = 1,
+    max_steps: Annotated[
+        int | None,
+        Option(help="Maximum training steps, overrides epochs if present"),
+    ] = None,
     batch_size: int = 8,
-    grad_chkpt: bool = False,
+    grad_chkpt: Annotated[bool, Option(help="Gradient checkpointing")] = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
-    max_steps: int = 1000,
 ) -> None:
-    import os
-
     import mlflow
 
     from ptperf.logging import logger
@@ -45,11 +48,6 @@ def main(
 
     if num_virtual_tokens is None:
         num_virtual_tokens = 0
-
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
-    if tracking_uri is None:
-        tracking_uri = "sqlite:///mlflow.db"
-        logger.warning("MLFLOW_TRACKING_URI is unset")
 
     if run_name is None:
         run_name = f"{model}/{task}/{method}"
@@ -75,10 +73,10 @@ def main(
         run_name=run_name,
         num_virtual_tokens=num_virtual_tokens,
         epochs=epochs,
+        max_steps=max_steps,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,
         tracking=True,
-        max_steps=max_steps,
     )
 
     mlflow.end_run()

@@ -35,7 +35,7 @@ def gpt2() -> GPT2Model:
 def gpt2_lora() -> LoraModel:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "lora")
+    model = _prepare_model(model, "causal-lm", "lora", 0)
     return cast(LoraModel, model)
 
 
@@ -43,7 +43,7 @@ def gpt2_lora() -> LoraModel:
 def gpt2_prefix() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "prefix-tune")
+    model = _prepare_model(model, "causal-lm", "prefix-tune", 1)
     return cast(PeftModelForCausalLM, model)
 
 
@@ -86,14 +86,14 @@ def t5() -> T5Model:
 @fixture(scope="session")
 def t5_lora() -> LoraModel:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "lora")
+    model = _prepare_model(model, "seq2seq", "lora", 0)
     return cast(LoraModel, model)
 
 
 @fixture(scope="session")
 def t5_prefix() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "prefix-tune")
+    model = _prepare_model(model, "seq2seq", "prefix-tune", 1)
     return cast(PeftModelForSeq2SeqLM, model)
 
 

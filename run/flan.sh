@@ -20,6 +20,7 @@ for MODEL in ${MODELS[@]}; do
         --method fine-tune \
         --log-level DEBUG \
         --task causal-lm \
+        --max-steps 1024 \
         --model $MODEL
 
     uv run --no-sync cli \
@@ -27,11 +28,13 @@ for MODEL in ${MODELS[@]}; do
         --method prefix-tune \
         --log-level DEBUG \
         --task causal-lm \
+        --max-steps 1024 \
         --model $MODEL
 
     uv run --no-sync cli \
         --log-level DEBUG \
         --task causal-lm \
+        --max-steps 1024 \
         --method lora \
         --model $MODEL
 done

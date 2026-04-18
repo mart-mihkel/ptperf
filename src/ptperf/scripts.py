@@ -1,4 +1,3 @@
-import time
 from typing import cast
 
 import mlflow
@@ -23,6 +22,7 @@ from transformers import (
     default_data_collator,
 )
 
+from ptperf.callbacks import HWMetricsCallback
 from ptperf.datasets import load_data
 from ptperf.logging import logger
 from ptperf.types import Method, Task
@@ -34,9 +34,9 @@ def fine_tune(
     method: Method,
     run_name: str,
     num_virtual_tokens: int,
-    epochs: int = 1,
-    max_steps: int | None = None,
-    batch_size: int = 8,
+    epochs: int,
+    max_steps: int | None,
+    batch_size: int,
     grad_chkpt: bool = False,
     tracking: bool = False,
 ) -> None:
@@ -54,26 +54,26 @@ def fine_tune(
 
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(
-        run_name, epochs, batch_size, grad_chkpt, tracking, max_steps=max_steps
+        run_name=run_name,
+        epochs=epochs,
+        max_steps=max_steps,
+        batch_size=batch_size,
+        grad_chkpt=grad_chkpt,
+        tracking=tracking,
     )
 
+    callback = HWMetricsCallback(tracking=tracking)
     trainer = Trainer(
         args=args,
         model=model,
+        callbacks=[callback],
         data_collator=collator,
         train_dataset=data["train"],
         eval_dataset=data["validation"],
     )
 
-    if torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats()
-
     logger.info("start trainer")
-    t0 = time.perf_counter()
     trainer.train()
-    wall_time = time.perf_counter() - t0
-
-    _log_hardware_metrics(trainer, wall_time, tracking)
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -123,7 +123,7 @@ def _prepare_model(
     model: PreTrainedModel,
     task: Task,
     method: Method,
-    num_virtual_tokens: int = 0,
+    num_virtual_tokens: int,
 ) -> PreTrainedModel:
     if method == "fine-tune":
         return model
@@ -150,10 +150,10 @@ def _prepare_model(
 def _get_training_args(
     run_name: str,
     epochs: int,
+    max_steps: int | None,
     batch_size: int,
-    grad_chkpt: bool = False,
+    grad_chkpt: bool,
     tracking: bool = False,
-    max_steps: int | None = None,
 ) -> TrainingArguments:
     report_to = "mlflow" if tracking else "none"
     have_cuda = torch.cuda.is_available()
@@ -210,36 +210,17 @@ def _get_peft_task(task: Task) -> TaskType:
 def _log_params(model: PreTrainedModel, tracking: bool = False) -> None:
     total = sum(p.numel() for p in model.parameters())
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    ratio = trainable / total
 
     logger.debug("total parameters %d", total)
     logger.debug("trainable parameters %d", trainable)
-    logger.debug("trainable to total ratio %.2f", trainable / total)
+    logger.debug("trainable to total ratio %.2f", ratio)
 
-    if tracking:
-        mlflow.log_metric("total_parameters", total)
-        mlflow.log_metric("trainable_parameters", trainable)
+    if not tracking:
+        return
 
-
-def _log_hardware_metrics(
-    trainer: Trainer,
-    wall_time: float,
-    tracking: bool = False,
-) -> None:
-    metrics: dict[str, float] = {"train_wall_time_s": wall_time}
-
+    mlflow.log_metric("total_parameters", total)
+    mlflow.log_metric("trainable_parameters", trainable)
     if torch.cuda.is_available():
-        peak_alloc = torch.cuda.max_memory_allocated() / 1024**2
-        peak_reserved = torch.cuda.max_memory_reserved() / 1024**2
-
-        metrics["peak_gpu_memory_allocated_mb"] = peak_alloc
-        metrics["peak_gpu_memory_reserved_mb"] = peak_reserved
-
-    log_history = trainer.state.log_history
-    train_logs = [e for e in log_history if "train_samples_per_second" in e]
-    if train_logs:
-        metrics["train_samples_per_second"] = train_logs[-1]["train_samples_per_second"]
-
-    for k, v in metrics.items():
-        logger.info("%s: %.4f", k, v)
-        if tracking:
-            mlflow.log_metric(k, v)
+        mlflow.log_metric("gpu_device_count", torch.cuda.device_count())
+        mlflow.log_metric("gpu_current_device", torch.cuda.current_device())
