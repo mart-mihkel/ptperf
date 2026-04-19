@@ -43,7 +43,7 @@ def gpt2_lora() -> LoraModel:
 def gpt2_prefix() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "prefix-tune", 1)
+    model = _prepare_model(model, "causal-lm", "prefix-tune", 10)
     return cast(PeftModelForCausalLM, model)
 
 
@@ -93,7 +93,7 @@ def t5_lora() -> LoraModel:
 @fixture(scope="session")
 def t5_prefix() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "prefix-tune", 1)
+    model = _prepare_model(model, "seq2seq", "prefix-tune", 10)
     return cast(PeftModelForSeq2SeqLM, model)
 
 
@@ -121,4 +121,4 @@ def t5_samsum(
     }
 
     split = cast(Split, split)
-    return load_data(t5_tokenizer, t5_config, "seq2seq", split=split)
+    return load_data(t5_tokenizer, t5_config, "seq2seq", 10, split=split)

@@ -14,12 +14,12 @@ from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
     DataCollator,
+    DataCollatorForLanguageModeling,
     DataCollatorForSeq2Seq,
     PreTrainedModel,
     PreTrainedTokenizerFast,
     Trainer,
     TrainingArguments,
-    default_data_collator,
 )
 
 from ptperf.callbacks import HWMetricsCallback
@@ -112,7 +112,12 @@ def _load_collator(tokenizer: PreTrainedTokenizerFast, task: Task) -> DataCollat
     logger.debug("prepare data collator for %s", task)
 
     if task == "causal-lm":
-        return default_data_collator
+        return DataCollatorForLanguageModeling(
+            tokenizer,
+            mlm=False,
+            pad_to_multiple_of=8,
+        )
+
     if task == "seq2seq":
         return DataCollatorForSeq2Seq(tokenizer, pad_to_multiple_of=8)
 
