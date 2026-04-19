@@ -27,11 +27,7 @@ def main(
         str,
         Option(help="Experiment tracking host or path", envvar="MLFLOW_TRACKING_URI"),
     ] = "sqlite:///mlflow.db",
-    epochs: int = 1,
-    max_steps: Annotated[
-        int | None,
-        Option(help="Maximum training steps, overrides epochs if present"),
-    ] = None,
+    max_steps: Annotated[int, Option(help="Number of training steps")] = 2048,
     batch_size: int = 8,
     grad_chkpt: Annotated[bool, Option(help="Gradient checkpointing")] = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
@@ -39,7 +35,7 @@ def main(
     import mlflow
 
     from ptperf.logging import logger
-    from ptperf.scripts import fine_tune
+    from ptperf.modeling import fine_tune
 
     logger.setLevel(log_level)
 
@@ -72,7 +68,6 @@ def main(
         method=method,
         run_name=run_name,
         num_virtual_tokens=num_virtual_tokens,
-        epochs=epochs,
         max_steps=max_steps,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,

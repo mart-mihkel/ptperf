@@ -1,3 +1,5 @@
+from typing import Literal
+
 import mlflow
 import torch
 from transformers import (
@@ -7,10 +9,16 @@ from transformers import (
     TrainingArguments,
 )
 
+from ptperf.logging import logger
+
 
 class HWMetricsCallback(TrainerCallback):
+    tracking: bool
+    phase: Literal["train", "inference"]
+
     def __init__(self, tracking: bool = False) -> None:
         self.tracking = tracking
+        self.phase = "train"
 
     def on_train_begin(
         self,
@@ -20,8 +28,7 @@ class HWMetricsCallback(TrainerCallback):
         **kwargs: dict,
     ) -> None:
         _ = args, state, control, kwargs
-        if torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats()
+        self.reset_cuda_stats()
 
     def on_log(
         self,
@@ -30,17 +37,20 @@ class HWMetricsCallback(TrainerCallback):
         control: TrainerControl,
         **kwargs: dict,
     ) -> None:
-        _ = args, state, control, kwargs
-        metrics: dict[str, float] = {}
-
+        _ = args, control, kwargs
         if not torch.cuda.is_available():
             return
 
-        metrics["gpu_memory_allocated"] = torch.cuda.memory_allocated()
-        metrics["gpu_memory_reserved"] = torch.cuda.memory_reserved()
-        metrics["gpu_peak_memory_allocated"] = torch.cuda.max_memory_allocated()
-        metrics["gpu_peak_memory_reserved"] = torch.cuda.max_memory_reserved()
-        metrics = metrics | torch.cuda.memory_stats()
+        if not self.tracking:
+            return
 
-        if self.tracking:
-            mlflow.log_metrics(metrics, step=state.global_step)
+        mem_stats = torch.cuda.memory_stats()
+        metrics = {f"{self.phase}.{k}": v for k, v in mem_stats.items()}
+        mlflow.log_metrics(metrics, step=state.global_step)
+
+    @staticmethod
+    def reset_cuda_stats() -> None:
+        logger.debug("reset cuda stats")
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.reset_accumulated_memory_stats()

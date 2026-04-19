@@ -18,7 +18,7 @@ from transformers import (
 )
 
 from ptperf.datasets import load_data
-from ptperf.scripts import _prepare_model
+from ptperf.modeling import _prepare_model
 
 _gpt2 = "hf-internal-testing/tiny-random-gpt2"
 _t5 = "hf-internal-testing/tiny-random-t5"
@@ -43,7 +43,7 @@ def gpt2_lora() -> LoraModel:
 def gpt2_prefix() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "prefix-tune", 10)
+    model = _prepare_model(model, "causal-lm", "prefix-tune", 8)
     return cast(PeftModelForCausalLM, model)
 
 
@@ -67,14 +67,8 @@ def gpt2_wikitext(
     gpt2_config: GPT2Config,
     gpt2_tokenizer: GPT2Tokenizer,
 ) -> DatasetDict:
-    split = {
-        "train": "train[:10]",
-        "validation": "validation[:10]",
-        "test": "test[:10]",
-    }
-
-    split = cast(Split, split)
-    return load_data(gpt2_tokenizer, gpt2_config, "causal-lm", 10, split=split)
+    split = cast(Split, {"train": "train[:8]"})
+    return load_data(gpt2_tokenizer, gpt2_config, "causal-lm", 8, split=split)
 
 
 @fixture(scope="session")
@@ -93,7 +87,7 @@ def t5_lora() -> LoraModel:
 @fixture(scope="session")
 def t5_prefix() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "prefix-tune", 10)
+    model = _prepare_model(model, "seq2seq", "prefix-tune", 8)
     return cast(PeftModelForSeq2SeqLM, model)
 
 
@@ -114,11 +108,5 @@ def t5_samsum(
     t5_config: T5Config,
     t5_tokenizer: T5Tokenizer,
 ) -> DatasetDict:
-    split = {
-        "train": "train[:10]",
-        "validation": "validation[:10]",
-        "test": "test[:10]",
-    }
-
-    split = cast(Split, split)
-    return load_data(t5_tokenizer, t5_config, "seq2seq", 10, split=split)
+    split = cast(Split, {"train": "train[:8]"})
+    return load_data(t5_tokenizer, t5_config, "seq2seq", 8, split=split)

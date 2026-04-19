@@ -23,6 +23,7 @@ _console = Console(width=80)
 
 _handler = RichHandler(
     show_path=False,
+    show_time=False,
     console=_console,
     rich_tracebacks=True,
     tracebacks_show_locals=True,
@@ -32,9 +33,5 @@ _handler = RichHandler(
 install(show_locals=True, console=_console, suppress=_suppress)
 
 logging.basicConfig(format="%(message)s", handlers=[_handler])
-
-_tf_logger = logging.getLogger("transformers")
-_tf_logger.handlers = [_handler]
-_tf_logger.propagate = True
 
 logger = logging.getLogger("icftsc")

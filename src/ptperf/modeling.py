@@ -8,6 +8,7 @@ from peft import (
     TaskType,
     get_peft_model,
 )
+from torch.utils.data import Dataset
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
@@ -34,8 +35,7 @@ def fine_tune(
     method: Method,
     run_name: str,
     num_virtual_tokens: int,
-    epochs: int,
-    max_steps: int | None,
+    max_steps: int,
     batch_size: int,
     grad_chkpt: bool = False,
     tracking: bool = False,
@@ -55,7 +55,6 @@ def fine_tune(
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(
         run_name=run_name,
-        epochs=epochs,
         max_steps=max_steps,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,
@@ -69,11 +68,15 @@ def fine_tune(
         callbacks=[callback],
         data_collator=collator,
         train_dataset=data["train"],
-        eval_dataset=data["validation"],
     )
 
     logger.info("start trainer")
     trainer.train()
+
+    logger.info("start inference")
+    callback.reset_cuda_stats()
+    callback.phase = "inference"
+    trainer.evaluate(cast(Dataset, data["train"]), metric_key_prefix="inference")
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -154,8 +157,7 @@ def _prepare_model(
 
 def _get_training_args(
     run_name: str,
-    epochs: int,
-    max_steps: int | None,
+    max_steps: int,
     batch_size: int,
     grad_chkpt: bool,
     tracking: bool = False,
@@ -186,11 +188,10 @@ def _get_training_args(
         report_to=report_to,
         run_name=run_name,
         save_strategy="no",
-        eval_strategy="steps",
-        eval_steps=500,
-        logging_steps=100,
-        max_steps=max_steps if max_steps else -1,
-        num_train_epochs=epochs if max_steps is None else 1,
+        eval_strategy="no",
+        logging_steps=max(1, max_steps // 10),
+        num_train_epochs=0,
+        max_steps=max_steps,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         use_cpu=not have_cuda,
@@ -199,6 +200,7 @@ def _get_training_args(
         optim=optim,
         gradient_checkpointing=grad_chkpt,
         gradient_checkpointing_kwargs=grad_chkpt_kwargs,
+        full_determinism=True,
     )
 
 
