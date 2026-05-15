@@ -9,7 +9,7 @@ from ptperf.types import Method, Task
 app = Typer(no_args_is_help=True)
 
 
-@app.command(no_args_is_help=True)
+@app.command(no_args_is_help=True, help="Run experiments")
 def main(
     model: Annotated[str, Option(help="HuggingFace model or path to checkpoint")],
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],

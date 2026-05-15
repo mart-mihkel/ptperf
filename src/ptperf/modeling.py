@@ -5,6 +5,8 @@ import torch
 from peft import (
     LoraConfig,
     PrefixTuningConfig,
+    PromptEncoderConfig,
+    PromptTuningConfig,
     TaskType,
     get_peft_model,
 )
@@ -100,8 +102,6 @@ def _load_base_model(model_path: str, task: Task) -> PreTrainedModel:
         model = AutoModelForCausalLM.from_pretrained(model_path, dtype=dtype)
     elif task == "seq2seq":
         model = AutoModelForSeq2SeqLM.from_pretrained(model_path, dtype=dtype)
-    else:
-        raise NotImplementedError(f"Model for task: {task}")
 
     model = cast(PreTrainedModel, model)
     if model.config.pad_token_id is None:
@@ -123,8 +123,6 @@ def _load_collator(tokenizer: PreTrainedTokenizerFast, task: Task) -> DataCollat
 
     if task == "seq2seq":
         return DataCollatorForSeq2Seq(tokenizer, pad_to_multiple_of=8)
-
-    raise NotImplementedError(f"Collator for task: {task}")
 
 
 def _prepare_model(
@@ -152,7 +150,23 @@ def _prepare_model(
 
         return get_peft_model(model, peft_config)
 
-    raise NotImplementedError(f"Method: {method}")
+    if method == "prompt-tune":
+        logger.info("prepare prompt tuning model")
+        peft_config = PromptTuningConfig(
+            task_type=task_type,
+            num_virtual_tokens=num_virtual_tokens,
+        )
+
+        return get_peft_model(model, peft_config)
+
+    if method == "p-tune":
+        logger.info("prepare prompt tuning model")
+        peft_config = PromptEncoderConfig(
+            task_type=task_type,
+            num_virtual_tokens=num_virtual_tokens,
+        )
+
+        return get_peft_model(model, peft_config)
 
 
 def _get_training_args(
@@ -210,8 +224,6 @@ def _get_peft_task(task: Task) -> TaskType:
 
     if task == "seq2seq":
         return TaskType.SEQ_2_SEQ_LM
-
-    raise NotImplementedError(f"PEFT task type for {task}")
 
 
 def _log_params(model: PreTrainedModel, tracking: bool = False) -> None:

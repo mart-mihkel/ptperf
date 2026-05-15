@@ -70,9 +70,6 @@ def load_wikitext(
     logger.debug('load "Salesforce/wikitext" subtask "wikitext-2-raw-v1"')
     raw = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split=split)
 
-    # logger.debug("filter empty sequences")
-    # raw = raw.filter(lambda example: len(example["text"].strip()) > 0)
-
     cols = ["text"]
     max_len = config.max_position_embeddings - num_virtual_tokens
     fn_kwargs = {"tokenizer": tokenizer, "max_len": max_len}
