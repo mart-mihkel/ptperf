@@ -48,6 +48,36 @@ def gpt2_prefix() -> PeftModelForCausalLM:
 
 
 @fixture(scope="session")
+def gpt2_prompt() -> PeftModelForCausalLM:
+    model = AutoModelForCausalLM.from_pretrained(_gpt2)
+    model.config.pad_token_id = model.config.eos_token_id
+    model = _prepare_model(model, "causal-lm", "prompt-tune", 8)
+    return cast(PeftModelForCausalLM, model)
+
+
+@fixture(scope="session")
+def gpt2_p_tune() -> PeftModelForCausalLM:
+    model = AutoModelForCausalLM.from_pretrained(_gpt2)
+    model.config.pad_token_id = model.config.eos_token_id
+    model = _prepare_model(model, "causal-lm", "p-tune", 8)
+    return cast(PeftModelForCausalLM, model)
+
+
+@fixture(scope="session")
+def t5_prompt() -> PeftModelForSeq2SeqLM:
+    model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
+    model = _prepare_model(model, "seq2seq", "prompt-tune", 8)
+    return cast(PeftModelForSeq2SeqLM, model)
+
+
+@fixture(scope="session")
+def t5_p_tune() -> PeftModelForSeq2SeqLM:
+    model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
+    model = _prepare_model(model, "seq2seq", "p-tune", 8)
+    return cast(PeftModelForSeq2SeqLM, model)
+
+
+@fixture(scope="session")
 def gpt2_config() -> GPT2Config:
     config = AutoConfig.from_pretrained(_gpt2)
     return cast(GPT2Config, config)
