@@ -27,7 +27,7 @@ def main(
         str,
         Option(help="Experiment tracking host or path", envvar="MLFLOW_TRACKING_URI"),
     ] = "sqlite:///mlflow.db",
-    max_steps: Annotated[int, Option(help="Number of training steps")] = 2048,
+    max_steps: Annotated[int, Option(help="Number of training steps")] = 1024,
     batch_size: int = 8,
     grad_chkpt: Annotated[bool, Option(help="Gradient checkpointing")] = False,
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
