@@ -50,6 +50,15 @@ build-backend = "hatchling.build"
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.pytest]
+filterwarnings = [
+    "ignore:builtin type swigvarlink has no __module__:DeprecationWarning",
+    "ignore:builtin type SwigPyPacked has no __module__:DeprecationWarning",
+    "ignore:builtin type SwigPyObject has no __module__:DeprecationWarning",
+    "ignore::DeprecationWarning:torch.jit._script",
+    "ignore:fan_in_fan_out is set to False but the target module is `Conv1D`:UserWarning",
+]
+
 [tool.ruff.lint]
 select = ["A", "F", "E", "W", "I", "C4", "FA", "UP", "RUF", "SIM", "ARG", "ANN"]
 
