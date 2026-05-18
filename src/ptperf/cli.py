@@ -43,19 +43,28 @@ def main(
 
     logger.setLevel(log_level.upper())
 
+    soft_prompt_methods = ["prefix-tune", "prompt-tune", "p-tune"]
+
     if (lora_rank is None or lora_alpha is None) and method == "lora":
         raise ValueError("`lora_rank` nad `lora_alpha` must be set for lora")
 
-    if virtual_tokens is None and method in ["prefix-tune", "prompt-tune", "p-tune"]:
+    if virtual_tokens is None and method in soft_prompt_methods:
         raise ValueError("`virtual_tokens` must be set for soft prompt methods")
 
     if encoder_dim is None and method == "p-tune":
         raise ValueError("`encoder_dim` must be set for p-tuning")
 
-    lora_alpha = lora_alpha or 0
-    lora_rank = lora_rank or 0
-    virtual_tokens = virtual_tokens or 0
-    encoder_dim = encoder_dim or 0
+    if lora_rank is not None and method != "lora":
+        logger.warning("`lora_rank` is only used for lora")
+
+    if lora_alpha is not None and method != "lora":
+        logger.warning("`lora_alpha` is only used for lora")
+
+    if virtual_tokens is not None and method not in soft_prompt_methods:
+        logger.warning("`virtual_tokens` is only used with soft prompt methods")
+
+    if encoder_dim is not None and method != "p-tune":
+        logger.warning("`encoder_dim` is only used for p-tuning")
 
     if run_name is None:
         run_name = f"{model}/{task}/{method}"
@@ -83,10 +92,10 @@ def main(
         task=task,
         method=method,
         run_name=run_name,
-        lora_alpha=lora_alpha,
-        lora_rank=lora_rank,
-        virtual_tokens=virtual_tokens,
-        encoder_dim=encoder_dim,
+        lora_alpha=lora_alpha or 0,
+        lora_rank=lora_rank or 0,
+        virtual_tokens=virtual_tokens or 0,
+        encoder_dim=encoder_dim or 0,
         max_steps=max_steps,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,
@@ -94,6 +103,8 @@ def main(
     )
 
     mlflow.end_run()
+
+    logger.info('run "%s" finished\n', run_name)
 
 
 if __name__ == "__main__":
