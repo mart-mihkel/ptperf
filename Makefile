@@ -18,7 +18,6 @@ test:
 sync:
 	rsync --verbose --archive --delete \
 		--exclude-from .gitignore \
-		--exclude .ipynb_checkpoints \
 		--exclude .pytest_cache \
 		--exclude .ruff_cache \
 		--exclude .git \

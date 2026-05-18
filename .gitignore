@@ -8,3 +8,4 @@ wheels/
 .envrc
 *.db
 log/
+.ipynb_checkpoints/
