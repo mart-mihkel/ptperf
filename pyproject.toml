@@ -26,6 +26,13 @@ dev = [
 ]
 
 [project.optional-dependencies]
+notebooks = [
+    "matplotlib==3.10.8",
+    "ipywidgets==8.1.8",
+    "plotnine==0.15.4",
+    "ipython==9.13.0",
+    "jupyter==1.1.1",
+]
 cpu = ["torch==2.10.0"]
 cu128 = [
     "causal-conv1d==1.6.1",

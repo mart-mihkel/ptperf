@@ -12,23 +12,27 @@ system to compile `flash-attn`.
 MAX_JOBS=[n-jobs] uv sync --compile-bytecode --extra [cpu|cu128|rocm72]
 ```
 
+Use the `notebooks` extra for `jupyter` and plotting dependencies.
+
 ## Usage
 
-All experiments are runnable trough the `cli` installed in the virtualenv
+All experiments are runnable trough the `cli` installed in the virtualenv.
 
 ```bash
 cli --help
 ```
 
+The setup for our runs is in [run.sh](./run/run.sh).
+
 ## Tracking
 
-Experiment metrics are reported to `mlflow` and can be seen by serving the ui
+Experiment metrics are reported to `mlflow` and can be seen by serving the ui.
 
 ```bash
 mlflow ui
 ```
 
-Metrics can be exported to a csv with the `collect` script in the virtualenv
+Metrics can be exported to a csv with the `collect` script in the virtualenv.
 
 ```bash
 collect --help

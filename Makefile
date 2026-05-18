@@ -3,7 +3,9 @@ MAX_JOBS=4
 BACKEND=cpu
 
 install:
-	@MAX_JOBS=$(MAX_JOBS) uv sync --compile-bytecode --extra $(BACKEND)
+	@MAX_JOBS=$(MAX_JOBS) uv sync --compile-bytecode \
+		--extra $(BACKEND) \
+		--extra notebooks
 
 check:
 	@uv run --no-sync ruff format
