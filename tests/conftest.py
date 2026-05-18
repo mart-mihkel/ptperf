@@ -35,7 +35,7 @@ def gpt2() -> GPT2Model:
 def gpt2_lora() -> LoraModel:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "lora", 0)
+    model = _prepare_model(model, "causal-lm", "lora", 2, 4, 0, 0)
     return cast(LoraModel, model)
 
 
@@ -43,7 +43,7 @@ def gpt2_lora() -> LoraModel:
 def gpt2_prefix() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "prefix-tune", 8)
+    model = _prepare_model(model, "causal-lm", "prefix-tune", 8, 0, 0, 0)
     return cast(PeftModelForCausalLM, model)
 
 
@@ -51,7 +51,7 @@ def gpt2_prefix() -> PeftModelForCausalLM:
 def gpt2_prompt() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "prompt-tune", 8)
+    model = _prepare_model(model, "causal-lm", "prompt-tune", 0, 0, 4, 0)
     return cast(PeftModelForCausalLM, model)
 
 
@@ -59,21 +59,21 @@ def gpt2_prompt() -> PeftModelForCausalLM:
 def gpt2_p_tune() -> PeftModelForCausalLM:
     model = AutoModelForCausalLM.from_pretrained(_gpt2)
     model.config.pad_token_id = model.config.eos_token_id
-    model = _prepare_model(model, "causal-lm", "p-tune", 8)
+    model = _prepare_model(model, "causal-lm", "p-tune", 0, 0, 4, 4)
     return cast(PeftModelForCausalLM, model)
 
 
 @fixture(scope="session")
 def t5_prompt() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "prompt-tune", 8)
+    model = _prepare_model(model, "seq2seq", "prompt-tune", 0, 0, 4, 0)
     return cast(PeftModelForSeq2SeqLM, model)
 
 
 @fixture(scope="session")
 def t5_p_tune() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "p-tune", 8)
+    model = _prepare_model(model, "seq2seq", "p-tune", 0, 0, 4, 4)
     return cast(PeftModelForSeq2SeqLM, model)
 
 
@@ -110,14 +110,14 @@ def t5() -> T5Model:
 @fixture(scope="session")
 def t5_lora() -> LoraModel:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "lora", 0)
+    model = _prepare_model(model, "seq2seq", "lora", 2, 4, 0, 0)
     return cast(LoraModel, model)
 
 
 @fixture(scope="session")
 def t5_prefix() -> PeftModelForSeq2SeqLM:
     model = AutoModelForSeq2SeqLM.from_pretrained(_t5)
-    model = _prepare_model(model, "seq2seq", "prefix-tune", 8)
+    model = _prepare_model(model, "seq2seq", "prefix-tune", 0, 0, 8, 0)
     return cast(PeftModelForSeq2SeqLM, model)
 
 

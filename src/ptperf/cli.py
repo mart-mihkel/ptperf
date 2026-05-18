@@ -14,9 +14,13 @@ def main(
     model: Annotated[str, Option(help="HuggingFace model or path to checkpoint")],
     task: Annotated[Task.__value__, Option(help="Type of NLP task")],
     method: Annotated[Method.__value__, Option(help="Fine tuning method")],
-    num_virtual_tokens: Annotated[
-        int | None,
-        Option(help="Number of virtual tokens for prefix tuning"),
+    lora_rank: Annotated[int | None, Option(help="LoRA attention dimension")] = None,
+    lora_alpha: Annotated[int | None, Option(help="LoRA scaling parameter")] = None,
+    virtual_tokens: Annotated[
+        int | None, Option(help="Number of virtual tokens for soft prompt methods")
+    ] = None,
+    encoder_dim: Annotated[
+        int | None, Option(help="Prompt encoder hidden dimension for p-tuning")
     ] = None,
     experiment: Annotated[str, Option(help="Experiment name for tracking")] = "ptperf",
     run_name: Annotated[
@@ -30,20 +34,28 @@ def main(
     max_steps: Annotated[int, Option(help="Number of training steps")] = 1024,
     batch_size: int = 8,
     grad_chkpt: Annotated[bool, Option(help="Gradient checkpointing")] = False,
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
+    log_level: Literal["debug", "info", "warning", "error"] = "info",
 ) -> None:
     import mlflow
 
     from ptperf.logging import logger
     from ptperf.modeling import fine_tune
 
-    logger.setLevel(log_level)
+    logger.setLevel(log_level.upper())
 
-    if num_virtual_tokens is None and method == "prefix-tune":
-        raise ValueError("num_virtual_tokens must be set for prefix-tuning")
+    if (lora_rank is None or lora_alpha is None) and method == "lora":
+        raise ValueError("`lora_rank` nad `lora_alpha` must be set for lora")
 
-    if num_virtual_tokens is None:
-        num_virtual_tokens = 0
+    if virtual_tokens is None and method in ["prefix-tune", "prompt-tune", "p-tune"]:
+        raise ValueError("`virtual_tokens` must be set for soft prompt methods")
+
+    if encoder_dim is None and method == "p-tune":
+        raise ValueError("`encoder_dim` must be set for p-tuning")
+
+    lora_alpha = lora_alpha or 0
+    lora_rank = lora_rank or 0
+    virtual_tokens = virtual_tokens or 0
+    encoder_dim = encoder_dim or 0
 
     if run_name is None:
         run_name = f"{model}/{task}/{method}"
@@ -61,13 +73,20 @@ def main(
     mlflow.log_param("task", task)
     mlflow.log_param("model", model)
     mlflow.log_param("method", method)
+    mlflow.log_param("lora_alpha", lora_alpha)
+    mlflow.log_param("lora_rank", lora_rank)
+    mlflow.log_param("virtual_tokens", virtual_tokens)
+    mlflow.log_param("encoder_dim", encoder_dim)
 
     fine_tune(
         model_path=model,
         task=task,
         method=method,
         run_name=run_name,
-        num_virtual_tokens=num_virtual_tokens,
+        lora_alpha=lora_alpha,
+        lora_rank=lora_rank,
+        virtual_tokens=virtual_tokens,
+        encoder_dim=encoder_dim,
         max_steps=max_steps,
         batch_size=batch_size,
         grad_chkpt=grad_chkpt,

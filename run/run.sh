@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --output=log/slurm/%j-%x.out
-#SBATCH --gres=gpu:h200-141g:1
+#SBATCH --gres=gpu:a100-40g:1
 #SBATCH --cpus-per-task=32
 #SBATCH --job-name="gptneox"
 #SBATCH --partition=gpu
@@ -12,28 +12,42 @@ MODELS=(
     EleutherAI/pythia-160m
     EleutherAI/pythia-410m
     EleutherAI/pythia-1b
-    EleutherAI/pythia-1.4b
-    EleutherAI/pythia-2.8b
-    EleutherAI/pythia-6.9b
 )
 
 for MODEL in ${MODELS[@]}; do
     uv run --no-sync cli \
+        --log-level debug \
+        --task causal-lm \
         --method fine-tune \
-        --log-level DEBUG \
-        --task causal-lm \
         --model $MODEL
 
     uv run --no-sync cli \
-        --num-virtual-tokens 10 \
-        --method prefix-tune \
-        --log-level DEBUG \
-        --task causal-lm \
-        --model $MODEL
-
-    uv run --no-sync cli \
-        --log-level DEBUG \
+        --log-level debug \
         --task causal-lm \
         --method lora \
+        --lora-alpha 32 \
+        --lora-rank 16 \
+        --model $MODEL
+
+    uv run --no-sync cli \
+        --log-level debug \
+        --task causal-lm \
+        --method prefix-tune \
+        --virtual-tokens 100 \
+        --model $MODEL
+
+    uv run --no-sync cli \
+        --log-level debug \
+        --task causal-lm \
+        --method prompt-tune \
+        --virtual-tokens 100 \
+        --model $MODEL
+
+    uv run --no-sync cli \
+        --log-level debug \
+        --task causal-lm \
+        --method p-tune \
+        --virtual-tokens 32 \
+        --encoder-dim 512 \
         --model $MODEL
 done

@@ -36,7 +36,10 @@ def fine_tune(
     task: Task,
     method: Method,
     run_name: str,
-    num_virtual_tokens: int,
+    lora_alpha: int,
+    lora_rank: int,
+    virtual_tokens: int,
+    encoder_dim: int,
     max_steps: int,
     batch_size: int,
     grad_chkpt: bool = False,
@@ -48,11 +51,20 @@ def fine_tune(
 
     logger.info("prepare model")
     model = _load_base_model(model_path, task)
-    model = _prepare_model(model, task, method, num_virtual_tokens)
+    model = _prepare_model(
+        model,
+        task=task,
+        method=method,
+        lora_alpha=lora_alpha,
+        lora_rank=lora_rank,
+        virtual_tokens=virtual_tokens,
+        encoder_dim=encoder_dim,
+    )
+
     _log_params(model, tracking)
 
     logger.info("prepare data")
-    data = load_data(tokenizer, config, task, num_virtual_tokens)
+    data = load_data(tokenizer, config, task, virtual_tokens)
 
     collator = _load_collator(tokenizer, task)
     args = _get_training_args(
@@ -72,13 +84,24 @@ def fine_tune(
         train_dataset=data["train"],
     )
 
+    _reset_cuda_stats()
     logger.info("start trainer")
+    callback.phase = "train"
     trainer.train()
 
+    _reset_cuda_stats()
     logger.info("start inference")
-    callback.reset_cuda_stats()
     callback.phase = "inference"
     trainer.evaluate(cast(Dataset, data["train"]), metric_key_prefix="inference")
+
+
+def _reset_cuda_stats() -> None:
+    if not torch.cuda.is_available():
+        return
+
+    logger.debug("reset cuda stats")
+    torch.cuda.reset_peak_memory_stats()
+    torch.cuda.reset_accumulated_memory_stats()
 
 
 def _load_tokenizer(model_path: str) -> PreTrainedTokenizerFast:
@@ -129,44 +152,43 @@ def _prepare_model(
     model: PreTrainedModel,
     task: Task,
     method: Method,
-    num_virtual_tokens: int,
+    lora_alpha: int,
+    lora_rank: int,
+    virtual_tokens: int,
+    encoder_dim: int,
 ) -> PreTrainedModel:
     if method == "fine-tune":
         return model
 
     task_type = _get_peft_task(task)
-
     if method == "lora":
         logger.info("prepare lora model")
-        peft_config = LoraConfig(task_type=task_type)
-        return get_peft_model(model, peft_config)
-
-    if method == "prefix-tune":
+        config = LoraConfig(
+            task_type=task_type,
+            r=lora_rank,
+            lora_alpha=lora_alpha,
+        )
+    elif method == "prefix-tune":
         logger.info("prepare prefix tuning model")
-        peft_config = PrefixTuningConfig(
+        config = PrefixTuningConfig(
             task_type=task_type,
-            num_virtual_tokens=num_virtual_tokens,
+            num_virtual_tokens=virtual_tokens,
         )
-
-        return get_peft_model(model, peft_config)
-
-    if method == "prompt-tune":
+    elif method == "prompt-tune":
         logger.info("prepare prompt tuning model")
-        peft_config = PromptTuningConfig(
+        config = PromptTuningConfig(
             task_type=task_type,
-            num_virtual_tokens=num_virtual_tokens,
+            num_virtual_tokens=virtual_tokens,
         )
-
-        return get_peft_model(model, peft_config)
-
-    if method == "p-tune":
+    elif method == "p-tune":
         logger.info("prepare prompt tuning model")
-        peft_config = PromptEncoderConfig(
+        config = PromptEncoderConfig(
             task_type=task_type,
-            num_virtual_tokens=num_virtual_tokens,
+            num_virtual_tokens=virtual_tokens,
+            encoder_hidden_size=encoder_dim,
         )
 
-        return get_peft_model(model, peft_config)
+    return get_peft_model(model, config)
 
 
 def _get_training_args(

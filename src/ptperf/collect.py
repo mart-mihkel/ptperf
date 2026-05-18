@@ -14,7 +14,7 @@ def main(
         str,
         Option(help="Experiment tracking host or path", envvar="MLFLOW_TRACKING_URI"),
     ] = "sqlite:///mlflow.db",
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO",
+    log_level: Literal["debug", "info", "warning", "error"] = "info",
 ) -> None:
     import os
     from pathlib import Path
@@ -24,7 +24,7 @@ def main(
 
     from ptperf.logging import logger
 
-    logger.setLevel(log_level)
+    logger.setLevel(log_level.upper())
 
     logger.info("connecting to %s", tracking_uri)
     client = MlflowClient(tracking_uri=tracking_uri)

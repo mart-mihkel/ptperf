@@ -34,8 +34,6 @@ def load_data(
     if task == "seq2seq":
         return load_samsum(tokenizer, split)
 
-    raise NotImplementedError(f"Dataset for task: {task}")
-
 
 def load_samsum(
     tokenizer: PreTrainedTokenizerFast,
